@@ -10,6 +10,8 @@ from pymediainfo import MediaInfo
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
+VER = '0.1.1'
+
 
 def convert_bytes(num):
     """
@@ -98,13 +100,20 @@ class PopMenu(wx.Menu):
 
         self.parent = parent
 
-        self.popmenu1 = wx.MenuItem(self, wx.ID_ANY, 'Удалить ')
-        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelItem, id=self.popmenu1.GetId())
-        self.Append(self.popmenu1)
+        self.m_openfile = wx.MenuItem(self, wx.ID_ANY, 'Проиграть файл')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onPlayFile, id=self.m_openfile.GetId())
+        self.m_opendir = wx.MenuItem(self, wx.ID_ANY, 'Открыть расположение')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onOpenDir, id=self.m_opendir.GetId())
+        self.m_del = wx.MenuItem(self, wx.ID_ANY, 'Удалить из списка')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelItem, id=self.m_del.GetId())
+        self.m_delall = wx.MenuItem(self, wx.ID_ANY, 'Удалить все')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelAllItems, id=self.m_delall.GetId())
+
+        self.Append(self.m_openfile)
+        self.Append(self.m_opendir)
+        self.Append(self.m_del)
         self.AppendSeparator()
-        self.popmenu2 = wx.MenuItem(self, wx.ID_ANY, 'Удалить все')
-        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelAllItems, id=self.popmenu2.GetId())
-        self.Append(self.popmenu2)
+        self.Append(self.m_delall)
 
 
 class MyFrame(wx.Frame):
@@ -156,7 +165,8 @@ class MyFrame(wx.Frame):
         self.ctx_item = PopMenu(self.mainlist)
         self.mainlist.Bind(wx.EVT_RIGHT_DOWN, self.onRightDown)
         self.mainlist.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightDownItem)
-
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onPlayFile, id=self.mainlist.GetId())
+        self.mainlist.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
         # self.mainlist.Append(("Матрица", "111111111111111111111111111111111111", "1", "1920x1080"))
 
         # Кнопка
@@ -165,7 +175,6 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
 
     def onRightDown(self, event):
-        # self.PopupMenu(self.ctx, event.GetPosition())
         self.x = event.GetX()
         self.y = event.GetY()
         event.Skip()
@@ -224,11 +233,28 @@ class MyFrame(wx.Frame):
                     os.symlink(src, dst)
         os.system(f'explorer "{d_path}"')
 
+    def onPlayFile(self, event):
+        path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
+        os.system(f'"{path}"')
+
+    def onOpenDir(self, event):
+        path = os.path.dirname(self.mainlist.GetItemText(self.mainlist.FocusedItem, 1))
+        os.system(f'explorer "{path}"')
+
     def onDelItem(self, event):
-        self.mainlist.DeleteItem(self.mainlist.FocusedItem)
+        for i in range(self.mainlist.SelectedItemCount):
+            selected = self.mainlist.GetFirstSelected()
+            self.mainlist.DeleteItem(selected)
+        self.mainlist.Select(self.mainlist.FocusedItem)
 
     def onDelAllItems(self, event):
         self.mainlist.DeleteAllItems()
+
+    def onKeyboardHandle(self, event):
+        key = event.GetKeyCode()
+        if key == wx.WXK_DELETE:
+            self.onDelItem(self)
+        event.Skip()
 
     def onQuit(self, event):
         self.Close()
@@ -236,7 +262,7 @@ class MyFrame(wx.Frame):
 
 def main():
     app = wx.App()
-    top = MyFrame(None, title="NAS Search GUI (0.0.1)")
+    top = MyFrame(None, title=f"NAS Search GUI ({VER})")
     # top.SetIcon(wx.Icon(get_resource_path("favicon.ico")))
     top.SetClientSize(top.FromDIP(wx.Size(980, 500)))
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
