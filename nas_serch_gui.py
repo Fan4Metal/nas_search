@@ -140,6 +140,19 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.onOpenFile, id=wx.ID_OPEN)
         # self.Bind(wx.EVT_MENU, self.onSaveFile, id=wx.ID_SAVE)
 
+        # менею "Индекс"
+        indexMenu = wx.Menu()
+        item_create_index = wx.MenuItem(indexMenu, wx.ID_ANY, "Создать файл индекса")
+        indexMenu.Append(item_create_index)
+        menubar.Append(indexMenu, "Индекс")
+
+        # менею "Справка"
+        infoMenu = wx.Menu()
+        item_about = wx.MenuItem(fileMenu, wx.ID_ANY, "О программе")
+        infoMenu.Append(item_about)
+        menubar.Append(infoMenu, "Справка")
+        self.Bind(wx.EVT_MENU, self.onAboutBox, id=item_about.GetId())
+
         # ========== Основные элементы ==========
         self.panel = wx.Panel(self)
         self.gr = wx.GridBagSizer(2, 2)
@@ -258,6 +271,18 @@ class MyFrame(wx.Frame):
 
     def onQuit(self, event):
         self.Close()
+
+    def onAboutBox(self, event):
+        description = """Программа для поиска фильмов по индексу."""
+        licence = """MIT"""
+        info = wx.adv.AboutDialogInfo()
+        info.SetName('NAS Search GUI')
+        info.SetVersion(VER)
+        info.SetDescription(description)
+        info.SetCopyright('(C) 2022 Alexander Vanyunin, Anrey Abramov, Ivan Kashtanov')
+        info.SetLicence(licence)
+        # info.SetIcon(wx.Icon(kl.get_resource_path("favicon.png"), wx.BITMAP_TYPE_PNG))
+        wx.adv.AboutBox(info)
 
 
 def main():
