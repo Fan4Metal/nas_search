@@ -98,11 +98,13 @@ class PopMenu(wx.Menu):
 
         self.parent = parent
 
-        popmenu = wx.MenuItem(self, wx.ID_ANY, 'Удалить ')
-        self.Append(popmenu)
+        self.popmenu1 = wx.MenuItem(self, wx.ID_ANY, 'Удалить ')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelItem, id=self.popmenu1.GetId())
+        self.Append(self.popmenu1)
         self.AppendSeparator()
-        popmenu2 = wx.MenuItem(self, wx.ID_ANY, 'Удалить все')
-        self.Append(popmenu2)
+        self.popmenu2 = wx.MenuItem(self, wx.ID_ANY, 'Удалить все')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelAllItems, id=self.popmenu2.GetId())
+        self.Append(self.popmenu2)
 
 
 class MyFrame(wx.Frame):
@@ -222,13 +224,19 @@ class MyFrame(wx.Frame):
                     os.symlink(src, dst)
         os.system(f'explorer "{d_path}"')
 
+    def onDelItem(self, event):
+        self.mainlist.DeleteItem(self.mainlist.FocusedItem)
+
+    def onDelAllItems(self, event):
+        self.mainlist.DeleteAllItems()
+
     def onQuit(self, event):
         self.Close()
 
 
 def main():
     app = wx.App()
-    top = MyFrame(None, title="NAS Search GUI (alpha version)")
+    top = MyFrame(None, title="NAS Search GUI (0.0.1)")
     # top.SetIcon(wx.Icon(get_resource_path("favicon.ico")))
     top.SetClientSize(top.FromDIP(wx.Size(980, 500)))
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
