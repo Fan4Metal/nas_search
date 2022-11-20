@@ -385,7 +385,7 @@ class MyFrame(wx.Frame):
         info.SetDescription(description)
         info.SetCopyright('(C) 2022 Alexander Vanyunin, Anrey Abramov, Ivan Kashtanov')
         info.SetLicence(licence)
-        # info.SetIcon(wx.Icon(kl.get_resource_path("favicon.png"), wx.BITMAP_TYPE_PNG))
+        info.SetIcon(wx.Icon(get_resource_path("favicon.png"), wx.BITMAP_TYPE_PNG))
         wx.adv.AboutBox(info)
 
     def OnIndex(self, event):
@@ -401,7 +401,7 @@ class MyFrame(wx.Frame):
 def main():
     app = wx.App()
     top = MyFrame(None, title=f"NAS Search GUI ({VER})")
-    # top.SetIcon(wx.Icon(get_resource_path("favicon.ico")))
+    top.SetIcon(wx.Icon(get_resource_path("favicon.ico")))
     top.SetClientSize(top.FromDIP(wx.Size(980, 500)))
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
     top.Centre()
