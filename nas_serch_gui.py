@@ -1,8 +1,9 @@
 import ctypes
 import os, sys
 import threading
+from glob import glob, iglob
+from datetime import datetime
 import time
-import winreg
 
 import wx
 import wx.adv
@@ -47,6 +48,29 @@ def file_to_list(file: str):
         raise FileNotFoundError(f'Файл {file} не найден.')
 
 
+def nas_scan(path, file_name='nas.txt', save_file=True):
+
+    paths = glob(os.path.join(path, '\\**\\*.mp4'), recursive=True)
+    if save_file:
+        with open(file_name, 'w', encoding="utf-8") as file:
+            for item in paths:
+                file.write(item + "\n")
+
+
+def nas_scan1(path, file_name, save_file=True):
+    global stop_flag, result
+    paths = []
+    for i in iglob(os.path.join(path, '\\**\\*.mp4'), recursive=True):
+        if stop_flag:
+            result = False
+            return
+        paths.append(i)
+    if save_file:
+        with open(file_name, 'w', encoding="utf-8") as file:
+            for item in paths:
+                file.write(item + "\n")
+
+
 class Mp4Info:
 
     def __init__(self, file) -> None:
@@ -69,6 +93,85 @@ def check_mark(check: bool):
         return "\u2714"
     else:
         return "\u274C"
+
+
+class FileLocation(wx.Dialog):
+
+    def __init__(self, parent, title, srs, dest):
+        super().__init__(parent, title=title)
+
+        self.panel = wx.Panel(self)
+        self.box1v = wx.BoxSizer(wx.VERTICAL)
+        self.box1g = wx.BoxSizer(wx.HORIZONTAL)
+        self.box2g = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.label1 = wx.StaticText(self.panel, label="Сетевой диск NAS:")
+        self.t_nas_location = wx.TextCtrl(self.panel, value=srs)
+        self.box1g.Add(self.label1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box1g.Add(self.t_nas_location,
+                       proportion=1,
+                       flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
+                       border=5)
+
+        self.btn_ok = wx.Button(self.panel, wx.ID_OK, label="Начать", size=self.FromDIP((100, 25)))
+        self.btn_cancel = wx.Button(self.panel, wx.ID_CANCEL, label="Отмена", size=self.FromDIP((100, 25)))
+        self.box2g.Add(self.btn_ok, flag=wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box2g.Add(self.btn_cancel, flag=wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+
+        self.box1v.Add(self.box1g, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box1v.Add(self.box2g, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.panel.SetSizer(self.box1v)
+
+
+class IndexingPanel(wx.Dialog):
+
+    def __init__(self, parent, title, srs, dest):
+        super().__init__(parent, title=title)
+
+        self.panel = wx.Panel(self)
+        self.box1v = wx.BoxSizer(wx.VERTICAL)
+
+        self.label1 = wx.StaticText(self.panel, label="Выполняется сканирование...")
+        self.progress = wx.Gauge(self.panel, range=100, style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
+        self.btn_cancel = wx.Button(self.panel, wx.ID_OK, label="Отмена", size=self.FromDIP((100, 25)))
+
+        self.box1v.Add(self.label1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box1v.Add(self.progress, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box1v.Add(self.btn_cancel, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.Bind(wx.EVT_BUTTON, self.onCancel, id=self.btn_cancel.GetId())
+        self.panel.SetSizer(self.box1v)
+
+        self.progress.Pulse()
+        self.SetClientSize(self.FromDIP(wx.Size((300, 80))))
+        self.CentreOnParent()
+        self.Show()
+
+        global stop_flag, result
+        stop_flag = False
+        result = True
+        self.scan(srs, dest)
+        self.Hide()
+        if result:
+            wx.MessageDialog(self, 'Создание индекса завершено!', 'Создание индекса',
+                             wx.OK | wx.ICON_INFORMATION).ShowModal()
+        else:
+            wx.MessageDialog(self, 'Создание индекса отменено!', 'Создание индекса',
+                             wx.OK | wx.ICON_WARNING).ShowModal()
+        self.Destroy()
+
+    @staticmethod
+    def scan(srs, dest):
+        index_thr = threading.Thread(target=nas_scan1, args=(srs, dest))
+        index_thr.daemon = True
+        index_thr.start()
+        while index_thr.is_alive():
+            time.sleep(0.1)
+            wx.GetApp().Yield()
+            continue
+
+    def onCancel(self, event):
+        global stop_flag
+        stop_flag = True
 
 
 class NotFoundPanel(wx.Dialog):
@@ -145,6 +248,7 @@ class MyFrame(wx.Frame):
         item_create_index = wx.MenuItem(indexMenu, wx.ID_ANY, "Создать файл индекса")
         indexMenu.Append(item_create_index)
         menubar.Append(indexMenu, "Индекс")
+        self.Bind(wx.EVT_MENU, self.OnIndex, id=item_create_index.GetId())
 
         # менею "Справка"
         infoMenu = wx.Menu()
@@ -283,6 +387,15 @@ class MyFrame(wx.Frame):
         info.SetLicence(licence)
         # info.SetIcon(wx.Icon(kl.get_resource_path("favicon.png"), wx.BITMAP_TYPE_PNG))
         wx.adv.AboutBox(info)
+
+    def OnIndex(self, event):
+        # self.src = r'C:\Users\ALeX\Documents\Python'
+        self.src = "h:\\"
+        self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
+        self.file_loc.SetClientSize(self.file_loc.FromDIP(wx.Size((300, 80))))
+        self.file_loc.CentreOnParent()
+        if self.file_loc.ShowModal() == wx.ID_OK:
+            self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
 
 
 def main():
