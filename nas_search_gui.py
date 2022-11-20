@@ -99,7 +99,9 @@ class FileLocation(wx.Dialog):
 
     def __init__(self, parent, title, srs, dest):
         super().__init__(parent, title=title)
-
+        self.SetClientSize(self.FromDIP(wx.Size((400, 80))))
+        self.CentreOnParent()
+        
         self.panel = wx.Panel(self)
         self.box1v = wx.BoxSizer(wx.VERTICAL)
         self.box1g = wx.BoxSizer(wx.HORIZONTAL)
@@ -107,11 +109,14 @@ class FileLocation(wx.Dialog):
 
         self.label1 = wx.StaticText(self.panel, label="Сетевой диск NAS:")
         self.t_nas_location = wx.TextCtrl(self.panel, value=srs)
-        self.box1g.Add(self.label1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.b_open_folder = wx.Button(self.panel, wx.ID_ANY, label="Открыть", size=self.FromDIP((60, 25)))
+        self.Bind(wx.EVT_BUTTON, self.onOpenFolder, id=self.b_open_folder.GetId())
+        self.box1g.Add(self.label1, flag= wx.ALIGN_CENTRE_VERTICAL | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
         self.box1g.Add(self.t_nas_location,
                        proportion=1,
                        flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
                        border=5)
+        self.box1g.Add(self.b_open_folder, flag= wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
 
         self.btn_ok = wx.Button(self.panel, wx.ID_OK, label="Начать", size=self.FromDIP((100, 25)))
         self.btn_cancel = wx.Button(self.panel, wx.ID_CANCEL, label="Отмена", size=self.FromDIP((100, 25)))
@@ -122,6 +127,13 @@ class FileLocation(wx.Dialog):
         self.box1v.Add(self.box2g, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
         self.panel.SetSizer(self.box1v)
 
+    def onOpenFolder(self, event):
+        with wx.DirDialog(None, "Выбор NAS...", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as d_dialog:
+            if d_dialog.ShowModal() == wx.ID_CANCEL:
+                return
+            d_path = d_dialog.GetPath()
+        self.t_nas_location.Value = d_path
+        pass
 
 class IndexingPanel(wx.Dialog):
 
@@ -230,7 +242,7 @@ class MyFrame(wx.Frame):
         # меню "Файл"
         fileMenu = wx.Menu()
         item_open = wx.MenuItem(fileMenu, wx.ID_OPEN, "Открыть файл\tCtrl+O")
-        item_save = wx.MenuItem(fileMenu, wx.ID_SAVE, "Сохранить файл\tCtrl+S")
+        # item_save = wx.MenuItem(fileMenu, wx.ID_SAVE, "Сохранить файл\tCtrl+S")
         item_exit = wx.MenuItem(fileMenu, wx.ID_EXIT, "Выход\tCtrl+Q")
         fileMenu.Append(item_open)
         # fileMenu.Append(item_save)
@@ -250,7 +262,7 @@ class MyFrame(wx.Frame):
         menubar.Append(indexMenu, "Индекс")
         self.Bind(wx.EVT_MENU, self.OnIndex, id=item_create_index.GetId())
 
-        # менею "Справка"
+        # меню "Справка"
         infoMenu = wx.Menu()
         item_about = wx.MenuItem(fileMenu, wx.ID_ANY, "О программе")
         infoMenu.Append(item_about)
@@ -273,7 +285,7 @@ class MyFrame(wx.Frame):
 
         # Список
         self.mainlist.InsertColumn(0, 'Фильм', width=self.FromDIP(160))
-        self.mainlist.InsertColumn(1, 'Путь к файлу', width=self.FromDIP(570))
+        self.mainlist.InsertColumn(1, 'Путь к файлу', width=self.FromDIP(556))
         self.mainlist.InsertColumn(2, 'Размер', width=self.FromDIP(100))
         self.mainlist.InsertColumn(3, 'Разрешение', width=self.FromDIP(90))
         self.mainlist.InsertColumn(4, 'Теги', width=self.FromDIP(45))
@@ -284,7 +296,6 @@ class MyFrame(wx.Frame):
         self.mainlist.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightDownItem)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onPlayFile, id=self.mainlist.GetId())
         self.mainlist.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
-        # self.mainlist.Append(("Матрица", "111111111111111111111111111111111111", "1", "1920x1080"))
 
         # Кнопка
         self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Сохранить')
@@ -392,8 +403,8 @@ class MyFrame(wx.Frame):
         # self.src = r'C:\Users\ALeX\Documents\Python'
         self.src = "h:\\"
         self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
-        self.file_loc.SetClientSize(self.file_loc.FromDIP(wx.Size((300, 80))))
-        self.file_loc.CentreOnParent()
+        # self.file_loc.SetClientSize(self.file_loc.FromDIP(wx.Size((300, 80))))
+        # self.file_loc.CentreOnParent()
         if self.file_loc.ShowModal() == wx.ID_OK:
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
 
