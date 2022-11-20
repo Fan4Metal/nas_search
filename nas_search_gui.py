@@ -45,7 +45,7 @@ def file_to_list(file: str):
             list = [x.strip() for x in f]
         return list
     else:
-        raise FileNotFoundError(f'Файл {file} не найден.')
+        return []
 
 
 def nas_scan(path, file_name='nas.txt', save_file=True):
@@ -101,7 +101,7 @@ class FileLocation(wx.Dialog):
         super().__init__(parent, title=title)
         self.SetClientSize(self.FromDIP(wx.Size((400, 80))))
         self.CentreOnParent()
-        
+
         self.panel = wx.Panel(self)
         self.box1v = wx.BoxSizer(wx.VERTICAL)
         self.box1g = wx.BoxSizer(wx.HORIZONTAL)
@@ -111,12 +111,12 @@ class FileLocation(wx.Dialog):
         self.t_nas_location = wx.TextCtrl(self.panel, value=srs)
         self.b_open_folder = wx.Button(self.panel, wx.ID_ANY, label="Открыть", size=self.FromDIP((60, 25)))
         self.Bind(wx.EVT_BUTTON, self.onOpenFolder, id=self.b_open_folder.GetId())
-        self.box1g.Add(self.label1, flag= wx.ALIGN_CENTRE_VERTICAL | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box1g.Add(self.label1, flag=wx.ALIGN_CENTRE_VERTICAL | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
         self.box1g.Add(self.t_nas_location,
                        proportion=1,
                        flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
                        border=5)
-        self.box1g.Add(self.b_open_folder, flag= wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box1g.Add(self.b_open_folder, flag=wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
 
         self.btn_ok = wx.Button(self.panel, wx.ID_OK, label="Начать", size=self.FromDIP((100, 25)))
         self.btn_cancel = wx.Button(self.panel, wx.ID_CANCEL, label="Отмена", size=self.FromDIP((100, 25)))
@@ -134,6 +134,7 @@ class FileLocation(wx.Dialog):
             d_path = d_dialog.GetPath()
         self.t_nas_location.Value = d_path
         pass
+
 
 class IndexingPanel(wx.Dialog):
 
@@ -323,6 +324,10 @@ class MyFrame(wx.Frame):
         films = file_to_list(path_name)
         # films = file_to_list('1.txt')
         paths = file_to_list('nas.txt')
+        if not paths:
+            wx.MessageDialog(self, 'Не найден файл nas.txt', 'Ошибка',
+                             wx.OK | wx.ICON_ERROR).ShowModal()
+            return
         file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
         films_not_found = []
         for film in films:
