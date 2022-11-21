@@ -83,7 +83,7 @@ class Mp4Info:
                 self.width, self.height = track.width, track.height
         self.data = self.media_info.tracks[0].to_data()  # type: ignore
         self.filesize = self.data['file_size']
-        if "title" in self.data and 'recorded_date' in self.data and 'description' in self.data and 'longdescription' in self.data and self.data[
+        if "title" in self.data and 'description' in self.data and 'longdescription' in self.data and self.data[
                 'cover'] == "Yes":
             self.tags = True
 
