@@ -11,7 +11,7 @@ from pymediainfo import MediaInfo
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.2'
+VER = '0.1.3'
 
 
 def convert_bytes(num):
@@ -273,15 +273,14 @@ class MyFrame(wx.Frame):
         # ========== Основные элементы ==========
         self.panel = wx.Panel(self)
         self.gr = wx.GridBagSizer(3, 3)
-        
-        
-        self.t_search = wx.TextCtrl(self.panel, style=wx.TE_PROCESS_ENTER)
+
+        self.t_search = wx.TextCtrl(self.panel, size=self.FromDIP((850, 25)), style=wx.TE_PROCESS_ENTER)
         self.gr.Add(self.t_search, pos=(0, 0), span=(1, 2), flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
         self.Bind(wx.EVT_TEXT_ENTER, self.onEnter)
         self.b_search = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Поиск')
-        self.gr.Add(self.b_search, pos=(0, 2), flag=wx.ALIGN_LEFT | wx.TOP |  wx.LEFT | wx.RIGHT, border=10)
+        self.gr.Add(self.b_search, pos=(0, 2), flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onEnter, id=self.b_search.GetId())
-        
+
         self.mainlist = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
         self.gr.Add(self.mainlist,
                     pos=(1, 0),
@@ -311,24 +310,23 @@ class MyFrame(wx.Frame):
         self.gr.Add(self.b_save, pos=(2, 2), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
 
-
     def onEnter(self, event):
-        self.panel.Disable
+        self.t_search.Disable()
+        self.b_search.Disable()
         film = self.t_search.Value
         if not film:
-            return        
+            return
         paths = file_to_list('nas.txt')
         file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
         for j, file_name in enumerate(file_names):
             if file_name.lower().find(film.lower()) != -1:
-                print('Найден')
                 film_tag = Mp4Info(paths[j])
                 size = convert_bytes(film_tag.filesize)
                 dimm = f"{film_tag.width}\u00D7{film_tag.height}"
                 tags_ok = check_mark(film_tag.tags)
                 self.mainlist.Append((film, paths[j], size, dimm, tags_ok))
-        self.panel.Enable
-            
+        self.t_search.Enable()
+        self.b_search.Enable()
 
     def onRightDown(self, event):
         self.x = event.GetX()
@@ -460,15 +458,13 @@ class MyFrame(wx.Frame):
         # self.src = r'C:\Users\ALeX\Documents\Python'
         self.src = "h:\\"
         self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
-        # self.file_loc.SetClientSize(self.file_loc.FromDIP(wx.Size((300, 80))))
-        # self.file_loc.CentreOnParent()
         if self.file_loc.ShowModal() == wx.ID_OK:
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
 
 
 def main():
     app = wx.App()
-    top = MyFrame(None, title=f"NAS Search GUI ({VER})")
+    top = MyFrame(None, title=f"NAS Search GUI (ver.{VER})")
     top.SetIcon(wx.Icon(get_resource_path("favicon.ico")))
     top.SetClientSize(top.FromDIP(wx.Size(980, 500)))
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
