@@ -272,16 +272,24 @@ class MyFrame(wx.Frame):
 
         # ========== Основные элементы ==========
         self.panel = wx.Panel(self)
-        self.gr = wx.GridBagSizer(2, 2)
-
+        self.gr = wx.GridBagSizer(3, 3)
+        
+        
+        self.t_search = wx.TextCtrl(self.panel, style=wx.TE_PROCESS_ENTER)
+        self.gr.Add(self.t_search, pos=(0, 0), span=(1, 2), flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
+        self.Bind(wx.EVT_TEXT_ENTER, self.onEnter)
+        self.b_search = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Поиск')
+        self.gr.Add(self.b_search, pos=(0, 2), flag=wx.ALIGN_LEFT | wx.TOP |  wx.LEFT | wx.RIGHT, border=10)
+        self.Bind(wx.EVT_BUTTON, self.onEnter, id=self.b_search.GetId())
+        
         self.mainlist = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
         self.gr.Add(self.mainlist,
-                    pos=(0, 0),
-                    span=(1, 2),
+                    pos=(1, 0),
+                    span=(1, 3),
                     flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
                     border=10)
-        self.gr.AddGrowableCol(0)
-        self.gr.AddGrowableRow(0)
+        self.gr.AddGrowableCol(1)
+        self.gr.AddGrowableRow(1)
         self.panel.SetSizer(self.gr)
 
         # Список
@@ -300,8 +308,27 @@ class MyFrame(wx.Frame):
 
         # Кнопка
         self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Сохранить')
-        self.gr.Add(self.b_save, pos=(1, 1), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr.Add(self.b_save, pos=(2, 2), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
+
+
+    def onEnter(self, event):
+        self.panel.Disable
+        film = self.t_search.Value
+        if not film:
+            return        
+        paths = file_to_list('nas.txt')
+        file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
+        for j, file_name in enumerate(file_names):
+            if file_name.lower().find(film.lower()) != -1:
+                print('Найден')
+                film_tag = Mp4Info(paths[j])
+                size = convert_bytes(film_tag.filesize)
+                dimm = f"{film_tag.width}\u00D7{film_tag.height}"
+                tags_ok = check_mark(film_tag.tags)
+                self.mainlist.Append((film, paths[j], size, dimm, tags_ok))
+        self.panel.Enable
+            
 
     def onRightDown(self, event):
         self.x = event.GetX()
