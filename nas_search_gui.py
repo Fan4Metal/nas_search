@@ -11,7 +11,7 @@ from pymediainfo import MediaInfo
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.1'
+VER = '0.1.2'
 
 
 def convert_bytes(num):
@@ -325,11 +325,27 @@ class MyFrame(wx.Frame):
         # films = file_to_list('1.txt')
         paths = file_to_list('nas.txt')
         if not paths:
-            wx.MessageDialog(self, 'Не найден файл nas.txt', 'Ошибка',
-                             wx.OK | wx.ICON_ERROR).ShowModal()
+            wx.MessageDialog(self, 'Не найден файл nas.txt', 'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
             return
-        file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
+
         films_not_found = []
+        open_thr = threading.Thread(target=self.open_files_thread, args=(self, films, paths, films_not_found))
+        open_thr.start()
+        self.panel.Disable()
+        while open_thr.is_alive():
+            time.sleep(0.1)
+            wx.GetApp().Yield()
+            continue
+        self.panel.Enable()
+        if films_not_found:
+            self.notfoundpanel = NotFoundPanel(self, "Внимание!", films_not_found)
+            self.notfoundpanel.SetClientSize(self.FromDIP(wx.Size((300, 200))))
+            self.notfoundpanel.CentreOnParent()
+            self.notfoundpanel.ShowModal()
+
+    @staticmethod
+    def open_files_thread(self, films, paths, films_not_found):
+        file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
         for film in films:
             flag = False
             for j, file_name in enumerate(file_names):
@@ -342,11 +358,6 @@ class MyFrame(wx.Frame):
                     flag = True
             if not flag:
                 films_not_found.append(film)
-        if films_not_found:
-            self.notfoundpanel = NotFoundPanel(self, "Внимание!", films_not_found)
-            self.notfoundpanel.SetClientSize(self.FromDIP(wx.Size((300, 200))))
-            self.notfoundpanel.CentreOnParent()
-            self.notfoundpanel.ShowModal()
 
     def onSave(self, event):
         if self.mainlist.GetItemCount() == 0:
@@ -362,8 +373,22 @@ class MyFrame(wx.Frame):
                 try:
                     os.symlink(src, dst)
                 except FileExistsError:
-                    os.remove(dst)
-                    os.symlink(src, dst)
+                    try:
+                        os.remove(dst)
+                        os.symlink(src, dst)
+                    except OSError:
+                        wx.MessageDialog(
+                            self,
+                            'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
+                            'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+                        return
+                except OSError:
+                    wx.MessageDialog(
+                        self,
+                        'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
+                        'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+                    return
+
         os.system(f'explorer "{d_path}"')
 
     def onPlayFile(self, event):
