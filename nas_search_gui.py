@@ -354,7 +354,7 @@ class MyFrame(wx.Frame):
             return
 
         films_not_found = []
-        open_thr = threading.Thread(target=self.open_files_thread, args=(self, films, paths, films_not_found))
+        open_thr = threading.Thread(target=self.open_files_thread, args=(films, paths, films_not_found, self.mainlist))
         open_thr.start()
         self.panel.Disable()
         while open_thr.is_alive():
@@ -369,7 +369,7 @@ class MyFrame(wx.Frame):
             self.notfoundpanel.ShowModal()
 
     @staticmethod
-    def open_files_thread(self, films, paths, films_not_found):
+    def open_files_thread(films, paths, films_not_found, list):
         file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
         for film in films:
             flag = False
@@ -379,7 +379,7 @@ class MyFrame(wx.Frame):
                     size = convert_bytes(film_tag.filesize)
                     dimm = f"{film_tag.width}\u00D7{film_tag.height}"
                     tags_ok = check_mark(film_tag.tags)
-                    self.mainlist.Append((film, paths[j], size, dimm, tags_ok))
+                    list.Append((film, paths[j], size, dimm, tags_ok))
                     flag = True
             if not flag:
                 films_not_found.append(film)
