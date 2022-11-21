@@ -200,12 +200,12 @@ class NotFoundPanel(wx.Dialog):
                                          style=wx.TE_READONLY | wx.ALIGN_TOP | wx.TE_MULTILINE)
         self.btn = wx.Button(self.panel, wx.ID_OK, label="OK", size=self.FromDIP((100, 25)))
 
-        self.box1v.Add(self.label1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+        self.box1v.Add(self.label1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.box1v.Add(self.list_notfound,
                        proportion=1,
                        flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
-                       border=5)
-        self.box1v.Add(self.btn, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
+                       border=10)
+        self.box1v.Add(self.btn, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.panel.SetSizer(self.box1v)
 
 
