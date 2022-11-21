@@ -451,7 +451,7 @@ class MyFrame(wx.Frame):
         info.SetName('NAS Search GUI')
         info.SetVersion(VER)
         info.SetDescription(description)
-        info.SetCopyright('(C) 2022 Alexander Vanyunin, Anrey Abramov, Ivan Kashtanov')
+        info.SetCopyright('(C) 2022 Alexander Vanyunin, Andrey Abramov, Ivan Kashtanov')
         info.SetLicence(licence)
         info.SetIcon(wx.Icon(get_resource_path("favicon.png"), wx.BITMAP_TYPE_PNG))
         wx.adv.AboutBox(info)
