@@ -42,7 +42,7 @@ def file_to_list(file: str):
     """
     if os.path.isfile(file):
         with open(file, 'r', encoding='utf-8') as f:
-            list = [x.strip() for x in f]
+            list = [x.strip() for x in f if not x.strip() == '']
         return list
     else:
         return []
@@ -347,6 +347,8 @@ class MyFrame(wx.Frame):
                 return
             path_name = fileDialog.GetPath()
         films = file_to_list(path_name)
+        print(films)
+        return
         # films = file_to_list('1.txt')
         paths = file_to_list('nas.txt')
         if not paths:
