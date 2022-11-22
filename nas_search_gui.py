@@ -11,7 +11,7 @@ from pymediainfo import MediaInfo
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.3'
+VER = '0.1.4'
 
 
 def convert_bytes(num):
@@ -309,6 +309,24 @@ class MyFrame(wx.Frame):
         self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Сохранить')
         self.gr.Add(self.b_save, pos=(2, 2), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
+        
+        # Текст
+        self.l_nasinfo = wx.StaticText(self.panel, label='')
+        self.gr.Add(self.l_nasinfo, pos=(2, 0), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        
+        # self.paths = []
+        # self.file_names = []
+        # print('конец инициализации')
+        # self.paths = self.load_nas_file('nas.txt')
+
+        # else:
+        #     wx.MessageDialog(
+        #         self,
+        #         'Не найден файл nas.txt!',
+        #         'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+        #     self.panel.Disable
+
+
 
     def onEnter(self, event):
         self.t_search.Disable()
@@ -316,15 +334,15 @@ class MyFrame(wx.Frame):
         film = self.t_search.Value
         if not film:
             return
-        paths = file_to_list('nas.txt')
-        file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
-        for j, file_name in enumerate(file_names):
+        # paths = file_to_list('nas.txt')
+        # file_names = [os.path.splitext(os.path.basename(x))[0] for x in self.paths]
+        for j, file_name in enumerate(self.file_names):
             if file_name.lower().find(film.lower()) != -1:
-                film_tag = Mp4Info(paths[j])
+                film_tag = Mp4Info(self.paths[j])
                 size = convert_bytes(film_tag.filesize)
                 dimm = f"{film_tag.width}\u00D7{film_tag.height}"
                 tags_ok = check_mark(film_tag.tags)
-                self.mainlist.Append((film, paths[j], size, dimm, tags_ok))
+                self.mainlist.Append((film, self.paths[j], size, dimm, tags_ok))
         self.t_search.Enable()
         self.b_search.Enable()
 
@@ -347,16 +365,16 @@ class MyFrame(wx.Frame):
                 return
             path_name = fileDialog.GetPath()
         films = file_to_list(path_name)
-        print(films)
-        return
+        # print(films)
+        # return
         # films = file_to_list('1.txt')
-        paths = file_to_list('nas.txt')
-        if not paths:
-            wx.MessageDialog(self, 'Не найден файл nas.txt', 'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-            return
+        # paths = file_to_list('nas.txt')
+        # if not paths:
+        #     wx.MessageDialog(self, 'Не найден файл nas.txt', 'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+        #     return
 
         films_not_found = []
-        open_thr = threading.Thread(target=self.open_files_thread, args=(films, paths, films_not_found, self.mainlist))
+        open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.paths, films_not_found, self.mainlist))
         open_thr.start()
         self.panel.Disable()
         while open_thr.is_alive():
@@ -462,6 +480,23 @@ class MyFrame(wx.Frame):
         self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
         if self.file_loc.ShowModal() == wx.ID_OK:
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
+    
+           
+    def load_nas_file(self, nas_location):
+        if os.path.isfile(nas_location):
+            paths = file_to_list(nas_location)
+            if paths:
+                file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
+                date = datetime.fromtimestamp(os.path.getctime(nas_location)).strftime('%d.%m.%Y')
+                self.l_nasinfo.Label = f"Дата: {date}, файлов: {len(paths)}"
+                return paths, file_names
+        else:
+            wx.MessageDialog(
+                self,
+                'Не найден файл nas.txt!',
+                'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+            self.Close()
+            return [], []
 
 
 def main():
@@ -472,6 +507,7 @@ def main():
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
     top.Centre()
     top.Show()
+    top.paths, top.file_names = top.load_nas_file('nas.txt')
     app.MainLoop()
 
 
