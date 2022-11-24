@@ -1,10 +1,9 @@
 """NAS_search_GUI: Программа для поиска фильмов по индексу."""
-# TODO Написать класс инициализации индекса (nas.txt)
-# TODO Добавить пункт - "открыть файл индекса nas.txt"
-# TODO Таймер при создании индекса
-# TODO Параметр запуска для создания индекса
-# TODO Файл настроек или настройки в реестре?
-
+# [x] Написать класс инициализации индекса (nas.txt)
+# [x] Добавить пункт - "открыть файл индекса nas.txt"
+# [ ] Таймер при создании индекса
+# [ ] Параметр запуска для создания индекса
+# [ ] Файл настроек или настройки в реестре?
 
 import ctypes
 import os, sys
@@ -19,7 +18,7 @@ from pymediainfo import MediaInfo
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.4'
+VER = '0.1.5'
 
 
 def convert_bytes(num):
@@ -30,6 +29,13 @@ def convert_bytes(num):
         if num < 1024.0:
             return f'{num:3.1f}{x}'
         num /= 1024.0
+
+
+def check_mark(check: bool):
+    if check:
+        return "\u2714"
+    else:
+        return "\u274C"
 
 
 def get_resource_path(relative_path):
@@ -75,6 +81,8 @@ def nas_scan1(path, file_name, save_file=True):
         paths.append(i)
     if save_file:
         with open(file_name, 'w', encoding="utf-8") as file:
+            date = datetime.now().strftime('%d.%m.%Y')
+            file.write(date + "\n")
             for item in paths:
                 file.write(item + "\n")
 
@@ -96,11 +104,34 @@ class Mp4Info:
             self.tags = True
 
 
-def check_mark(check: bool):
-    if check:
-        return "\u2714"
-    else:
-        return "\u274C"
+class NasIndex:
+
+    def __init__(self, index_path):
+        self.paths = []
+        self.file_names = []
+        if os.path.isfile(index_path):
+            self.ready = True
+            self.paths, self.file_names = self.load_nas_file(index_path)
+        else:
+            self.ready = False
+
+    def is_ready(self):
+        return self.ready
+
+    def load_nas_file(self, nas_location):
+        paths = file_to_list(nas_location)
+        self.date = paths.pop(0)
+        # print(f"{self.date=}")
+        if paths:
+            file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
+            return paths, file_names
+        else:
+            # wx.MessageDialog(
+            #     self,
+            #     'Не найден файл nas.txt!',
+            #     'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+            # self.Close()
+            return [], []
 
 
 class FileLocation(wx.Dialog):
@@ -251,10 +282,8 @@ class MyFrame(wx.Frame):
         # меню "Файл"
         fileMenu = wx.Menu()
         item_open = wx.MenuItem(fileMenu, wx.ID_OPEN, "Открыть файл\tCtrl+O")
-        # item_save = wx.MenuItem(fileMenu, wx.ID_SAVE, "Сохранить файл\tCtrl+S")
         item_exit = wx.MenuItem(fileMenu, wx.ID_EXIT, "Выход\tCtrl+Q")
         fileMenu.Append(item_open)
-        # fileMenu.Append(item_save)
         fileMenu.AppendSeparator()
         fileMenu.Append(item_exit)
         menubar.Append(fileMenu, "Файл")
@@ -262,13 +291,15 @@ class MyFrame(wx.Frame):
         self.SetMenuBar(menubar)
         self.Bind(wx.EVT_MENU, self.onQuit, id=wx.ID_EXIT)
         self.Bind(wx.EVT_MENU, self.onOpenFile, id=wx.ID_OPEN)
-        # self.Bind(wx.EVT_MENU, self.onSaveFile, id=wx.ID_SAVE)
 
         # менею "Индекс"
         indexMenu = wx.Menu()
+        item_open_index = wx.MenuItem(indexMenu, wx.ID_ANY, "Открыть файл индекса")
         item_create_index = wx.MenuItem(indexMenu, wx.ID_ANY, "Создать файл индекса")
+        indexMenu.Append(item_open_index)
         indexMenu.Append(item_create_index)
         menubar.Append(indexMenu, "Индекс")
+        self.Bind(wx.EVT_MENU, self.OnOpenIndex, id=item_create_index.GetId())
         self.Bind(wx.EVT_MENU, self.OnIndex, id=item_create_index.GetId())
 
         # меню "Справка"
@@ -307,6 +338,7 @@ class MyFrame(wx.Frame):
         self.mainlist.InsertColumn(4, 'Теги', width=self.FromDIP(45))
         self.mainlist.EnableCheckBoxes()
 
+        # Контекстное меню
         self.ctx_item = PopMenu(self.mainlist)
         self.mainlist.Bind(wx.EVT_RIGHT_DOWN, self.onRightDown)
         self.mainlist.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightDownItem)
@@ -317,24 +349,17 @@ class MyFrame(wx.Frame):
         self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Сохранить')
         self.gr.Add(self.b_save, pos=(2, 2), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
-        
+
         # Текст
         self.l_nasinfo = wx.StaticText(self.panel, label='')
         self.gr.Add(self.l_nasinfo, pos=(2, 0), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
-        
-        # self.paths = []
-        # self.file_names = []
-        # print('конец инициализации')
-        # self.paths = self.load_nas_file('nas.txt')
 
-        # else:
-        #     wx.MessageDialog(
-        #         self,
-        #         'Не найден файл nas.txt!',
-        #         'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-        #     self.panel.Disable
-
-
+    def post_init(self, nas_location):
+        self.nas = NasIndex(nas_location)
+        if self.nas.is_ready():
+            self.l_nasinfo.Label = f"Дата: {self.nas.date}, файлов: {len(self.nas.paths)}"
+        else:
+            self.l_nasinfo.Label = f"nas.txt не загружен"
 
     def onEnter(self, event):
         self.t_search.Disable()
@@ -342,8 +367,6 @@ class MyFrame(wx.Frame):
         film = self.t_search.Value
         if not film:
             return
-        # paths = file_to_list('nas.txt')
-        # file_names = [os.path.splitext(os.path.basename(x))[0] for x in self.paths]
         for j, file_name in enumerate(self.file_names):
             if file_name.lower().find(film.lower()) != -1:
                 film_tag = Mp4Info(self.paths[j])
@@ -373,16 +396,10 @@ class MyFrame(wx.Frame):
                 return
             path_name = fileDialog.GetPath()
         films = file_to_list(path_name)
-        # print(films)
-        # return
-        # films = file_to_list('1.txt')
-        # paths = file_to_list('nas.txt')
-        # if not paths:
-        #     wx.MessageDialog(self, 'Не найден файл nas.txt', 'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-        #     return
 
         films_not_found = []
-        open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.paths, films_not_found, self.mainlist))
+        open_thr = threading.Thread(target=self.open_files_thread,
+                                    args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
         self.panel.Disable()
         while open_thr.is_alive():
@@ -397,8 +414,10 @@ class MyFrame(wx.Frame):
             self.notfoundpanel.ShowModal()
 
     @staticmethod
-    def open_files_thread(films, paths, films_not_found, list):
-        file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
+    def open_files_thread(films, nas_obj, films_not_found, list):
+        paths = nas_obj.paths
+        file_names = nas_obj.file_names
+        # file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
         for film in films:
             flag = False
             for j, file_name in enumerate(file_names):
@@ -484,27 +503,13 @@ class MyFrame(wx.Frame):
 
     def OnIndex(self, event):
         # self.src = r'C:\Users\ALeX\Documents\Python'
-        self.src = "h:\\"
+        self.src = "z:\\"
         self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
         if self.file_loc.ShowModal() == wx.ID_OK:
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
-    
-           
-    def load_nas_file(self, nas_location):
-        if os.path.isfile(nas_location):
-            paths = file_to_list(nas_location)
-            if paths:
-                file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
-                date = datetime.fromtimestamp(os.path.getctime(nas_location)).strftime('%d.%m.%Y')
-                self.l_nasinfo.Label = f"Дата: {date}, файлов: {len(paths)}"
-                return paths, file_names
-        else:
-            wx.MessageDialog(
-                self,
-                'Не найден файл nas.txt!',
-                'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-            self.Close()
-            return [], []
+
+    def OnOpenIndex(self, event):
+        pass
 
 
 def main():
@@ -515,9 +520,18 @@ def main():
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
     top.Centre()
     top.Show()
-    top.paths, top.file_names = top.load_nas_file('nas.txt')
+    top.post_init('nas.txt')
     app.MainLoop()
+
+
+def main_test():
+    nas = NasIndex('nas.txt')
+    print(nas.is_ready())
+    print(len(nas.paths))
+    print(len(nas.file_names))
+    print(datetime.now().strftime('%d.%m.%Y'))
 
 
 if __name__ == '__main__':
     main()
+    # main_test()
