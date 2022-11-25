@@ -6,7 +6,7 @@
 # [ ] Файл настроек или настройки в реестре?
 
 import ctypes
-import os, sys
+import os, sys, re
 import threading
 from glob import glob, iglob
 from datetime import datetime
@@ -90,6 +90,7 @@ def nas_scan1(path, file_name, save_file=True):
 class Mp4Info:
 
     def __init__(self, file) -> None:
+        # FIX c c 
         self.media_info = MediaInfo.parse(file)
         self.width = 0
         self.height = 0
@@ -299,7 +300,7 @@ class MyFrame(wx.Frame):
         indexMenu.Append(item_open_index)
         indexMenu.Append(item_create_index)
         menubar.Append(indexMenu, "Индекс")
-        self.Bind(wx.EVT_MENU, self.OnOpenIndex, id=item_create_index.GetId())
+        self.Bind(wx.EVT_MENU, self.OnOpenIndex, id=item_open_index.GetId())
         self.Bind(wx.EVT_MENU, self.OnIndex, id=item_create_index.GetId())
 
         # меню "Справка"
@@ -350,32 +351,31 @@ class MyFrame(wx.Frame):
         self.gr.Add(self.b_save, pos=(2, 2), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
 
-        # Текст
+        # Текст - информация о статусе индекса
         self.l_nasinfo = wx.StaticText(self.panel, label='')
         self.gr.Add(self.l_nasinfo, pos=(2, 0), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
 
     def post_init(self, nas_location):
         self.nas = NasIndex(nas_location)
         if self.nas.is_ready():
-            self.l_nasinfo.Label = f"Дата: {self.nas.date}, файлов: {len(self.nas.paths)}"
+            self.l_nasinfo.Label = f"{os.path.basename(nas_location)}: (дата {self.nas.date}, файлов {len(self.nas.paths)})"
         else:
-            self.l_nasinfo.Label = f"nas.txt не загружен"
+            self.l_nasinfo.Label = f"Индекс не загружен"
 
     def onEnter(self, event):
-        self.t_search.Disable()
-        self.b_search.Disable()
-        film = self.t_search.Value
-        if not film:
+        films = [self.t_search.Value]
+        films_not_found = []
+        if not films:
             return
-        for j, file_name in enumerate(self.file_names):
-            if file_name.lower().find(film.lower()) != -1:
-                film_tag = Mp4Info(self.paths[j])
-                size = convert_bytes(film_tag.filesize)
-                dimm = f"{film_tag.width}\u00D7{film_tag.height}"
-                tags_ok = check_mark(film_tag.tags)
-                self.mainlist.Append((film, self.paths[j], size, dimm, tags_ok))
-        self.t_search.Enable()
-        self.b_search.Enable()
+        open_thr = threading.Thread(target=self.open_files_thread,
+                                    args=(films, self.nas, films_not_found, self.mainlist))
+        open_thr.start()
+        self.panel.Disable()
+        while open_thr.is_alive():
+            time.sleep(0.1)
+            wx.GetApp().Yield()
+            continue
+        self.panel.Enable()
 
     def onRightDown(self, event):
         self.x = event.GetX()
@@ -415,13 +415,16 @@ class MyFrame(wx.Frame):
 
     @staticmethod
     def open_files_thread(films, nas_obj, films_not_found, list):
+        
+        def find_whole_word(w):
+            return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search
+        
         paths = nas_obj.paths
         file_names = nas_obj.file_names
-        # file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
         for film in films:
             flag = False
             for j, file_name in enumerate(file_names):
-                if file_name.lower().find(film.lower()) != -1:
+                if find_whole_word(film)(file_name) != None:
                     film_tag = Mp4Info(paths[j])
                     size = convert_bytes(film_tag.filesize)
                     dimm = f"{film_tag.width}\u00D7{film_tag.height}"
@@ -509,7 +512,19 @@ class MyFrame(wx.Frame):
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
 
     def OnOpenIndex(self, event):
-        pass
+        with wx.FileDialog(self,
+                           "Открыть файл...",
+                           os.getcwd(),
+                           "",
+                           "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*",
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+            path_name = fileDialog.GetPath()
+        # self.nas = NasIndex(path_name)
+        self.l_nasinfo.Disable()
+        self.post_init(path_name)
+        self.l_nasinfo.Enable()
 
 
 def main():
