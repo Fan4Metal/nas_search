@@ -365,10 +365,14 @@ class MyFrame(wx.Frame):
             self.l_nasinfo.Label = f"Индекс не загружен"
 
     def onEnter(self, event):
+        if not self.t_search.Value.strip():
+            self.t_search.Value = ""
+            self.t_search.SetFocus()
+            return
         films = [self.t_search.Value]
         films_not_found = []
-        if not films:
-            return
+        # if not films:
+        #     return
         open_thr = threading.Thread(target=self.open_files_thread,
                                     args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
@@ -378,6 +382,8 @@ class MyFrame(wx.Frame):
             wx.GetApp().Yield()
             continue
         self.panel.Enable()
+        self.t_search.Value = ""
+        self.t_search.SetFocus()
 
     def onRightDown(self, event):
         self.x = event.GetX()
