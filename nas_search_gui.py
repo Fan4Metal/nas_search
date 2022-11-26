@@ -90,7 +90,6 @@ def nas_scan1(path, file_name, save_file=True):
 class Mp4Info:
 
     def __init__(self, file) -> None:
-        # FIX c c 
         self.media_info = MediaInfo.parse(file)
         self.width = 0
         self.height = 0
@@ -202,7 +201,7 @@ class IndexingPanel(wx.Dialog):
         global stop_flag, result
         stop_flag = False
         result = True
-        self.scan(srs, dest)
+        self.scan(srs, dest, self.label1)
         self.Hide()
         if result:
             wx.MessageDialog(self, 'Создание индекса завершено!', 'Создание индекса',
@@ -213,12 +212,15 @@ class IndexingPanel(wx.Dialog):
         self.Destroy()
 
     @staticmethod
-    def scan(srs, dest):
+    def scan(srs, dest, label):
         index_thr = threading.Thread(target=nas_scan1, args=(srs, dest))
         index_thr.daemon = True
+        sw = wx.StopWatch()
         index_thr.start()
         while index_thr.is_alive():
             time.sleep(0.1)
+            timer = datetime.fromtimestamp(sw.Time() / 1000.0).strftime("%M:%S")
+            label.Label = f"Выполняется сканирование... {timer}"
             wx.GetApp().Yield()
             continue
 
@@ -539,14 +541,5 @@ def main():
     app.MainLoop()
 
 
-def main_test():
-    nas = NasIndex('nas.txt')
-    print(nas.is_ready())
-    print(len(nas.paths))
-    print(len(nas.file_names))
-    print(datetime.now().strftime('%d.%m.%Y'))
-
-
 if __name__ == '__main__':
     main()
-    # main_test()
