@@ -18,7 +18,7 @@ from pymediainfo import MediaInfo
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.5'
+VER = '0.1.6'
 
 
 def convert_bytes(num):
@@ -416,22 +416,26 @@ class MyFrame(wx.Frame):
             self.notfoundpanel.ShowModal()
 
     @staticmethod
-    def open_files_thread(films, nas_obj, films_not_found, list):
-        
+    def open_files_thread(films, nas_obj, films_not_found, list: wx.ListCtrl):
+
         def find_whole_word(w):
             return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search
-        
+
         paths = nas_obj.paths
         file_names = nas_obj.file_names
         for film in films:
-            flag = False
+            flag = False  # фильм найден
             for j, file_name in enumerate(file_names):
                 if find_whole_word(film)(file_name) != None:
-                    film_tag = Mp4Info(paths[j])
-                    size = convert_bytes(film_tag.filesize)
-                    dimm = f"{film_tag.width}\u00D7{film_tag.height}"
-                    tags_ok = check_mark(film_tag.tags)
-                    list.Append((film, paths[j], size, dimm, tags_ok))
+                    try:
+                        film_tag = Mp4Info(paths[j])
+                        size = convert_bytes(film_tag.filesize)
+                        dimm = f"{film_tag.width}\u00D7{film_tag.height}"
+                        tags_ok = check_mark(film_tag.tags)
+                        list.Append((film, paths[j], size, dimm, tags_ok))
+                    except:
+                        list.Append((film, paths[j], "-", "-", "-"))
+                        list.SetItemBackgroundColour(list.GetItemCount() - 1, wx.RED)
                     flag = True
             if not flag:
                 films_not_found.append(film)
@@ -446,6 +450,8 @@ class MyFrame(wx.Frame):
         for i in range(self.mainlist.GetItemCount()):
             if self.mainlist.IsItemChecked(i):
                 src = self.mainlist.GetItemText(i, 1)
+                if not os.path.isfile(src):
+                    continue
                 dst = os.path.join(d_path, os.path.basename(src))
                 try:
                     os.symlink(src, dst)
@@ -470,7 +476,8 @@ class MyFrame(wx.Frame):
 
     def onPlayFile(self, event):
         path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
-        os.system(f'"{path}"')
+        if os.path.isfile(path):
+            os.system(f'"{path}"')
 
     def onOpenDir(self, event):
         path = os.path.dirname(self.mainlist.GetItemText(self.mainlist.FocusedItem, 1))
