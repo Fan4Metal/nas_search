@@ -525,6 +525,7 @@ class MyFrame(wx.Frame):
         self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
         if self.file_loc.ShowModal() == wx.ID_OK:
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
+        self.post_init("nas.txt")
 
     def OnOpenIndex(self, event):
         with wx.FileDialog(self,
