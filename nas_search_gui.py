@@ -1,7 +1,7 @@
 """NAS_search_GUI: Программа для поиска фильмов по индексу."""
 # [x] Написать класс инициализации индекса (nas.txt)
 # [x] Добавить пункт - "открыть файл индекса nas.txt"
-# [ ] Таймер при создании индекса
+# [x] Таймер при создании индекса
 # [ ] Параметр запуска для создания индекса
 # [ ] Файл настроек или настройки в реестре?
 
@@ -121,16 +121,10 @@ class NasIndex:
     def load_nas_file(self, nas_location):
         paths = file_to_list(nas_location)
         self.date = paths.pop(0)
-        # print(f"{self.date=}")
         if paths:
             file_names = [os.path.splitext(os.path.basename(x))[0] for x in paths]
             return paths, file_names
         else:
-            # wx.MessageDialog(
-            #     self,
-            #     'Не найден файл nas.txt!',
-            #     'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-            # self.Close()
             return [], []
 
 
@@ -138,7 +132,7 @@ class FileLocation(wx.Dialog):
 
     def __init__(self, parent, title, srs, dest):
         super().__init__(parent, title=title)
-        self.SetClientSize(self.FromDIP(wx.Size((400, 80))))
+        self.SetClientSize(self.FromDIP(wx.Size((400, 100))))
         self.CentreOnParent()
 
         self.panel = wx.Panel(self)
@@ -172,7 +166,6 @@ class FileLocation(wx.Dialog):
                 return
             d_path = d_dialog.GetPath()
         self.t_nas_location.Value = d_path
-        pass
 
 
 class IndexingPanel(wx.Dialog):
@@ -520,12 +513,11 @@ class MyFrame(wx.Frame):
         wx.adv.AboutBox(info)
 
     def OnIndex(self, event):
-        # self.src = r'C:\Users\ALeX\Documents\Python'
         self.src = "z:\\"
         self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
         if self.file_loc.ShowModal() == wx.ID_OK:
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
-        self.post_init("nas.txt")
+            self.post_init("nas.txt")
 
     def OnOpenIndex(self, event):
         with wx.FileDialog(self,
@@ -537,7 +529,6 @@ class MyFrame(wx.Frame):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
             path_name = fileDialog.GetPath()
-        # self.nas = NasIndex(path_name)
         self.l_nasinfo.Disable()
         self.post_init(path_name)
         self.l_nasinfo.Enable()
@@ -545,7 +536,7 @@ class MyFrame(wx.Frame):
 
 def main():
     app = wx.App()
-    top = MyFrame(None, title=f"NAS Search GUI (ver.{VER})")
+    top = MyFrame(None, title=f"NAS Search GUI (ver {VER})")
     top.SetIcon(wx.Icon(get_resource_path("favicon.ico")))
     top.SetClientSize(top.FromDIP(wx.Size(980, 500)))
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
