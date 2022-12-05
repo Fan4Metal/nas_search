@@ -19,7 +19,7 @@ from pymediainfo import MediaInfo
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.6'
+VER = '0.1.7'
 
 def convert_bytes(num):
     """
@@ -364,8 +364,6 @@ class MyFrame(wx.Frame):
             return
         films = [self.t_search.Value.strip()]
         films_not_found = []
-        # if not films:
-        #     return
         open_thr = threading.Thread(target=self.open_files_thread,
                                     args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
@@ -480,7 +478,10 @@ class MyFrame(wx.Frame):
 
     def onOpenDir(self, event):
         path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
-        subprocess.Popen(f'explorer /select,"{path}"', shell=True)
+        if os.path.isfile(path):
+            subprocess.Popen(f'explorer /select,"{path}"', shell=True)
+        else:
+            subprocess.Popen(f'explorer "{os.path.dirname(path)}"', shell=True)
         
     def onDelItem(self, event):
         for i in range(self.mainlist.SelectedItemCount):
