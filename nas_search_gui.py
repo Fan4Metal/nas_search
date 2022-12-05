@@ -362,7 +362,7 @@ class MyFrame(wx.Frame):
             self.t_search.Value = ""
             self.t_search.SetFocus()
             return
-        films = [self.t_search.Value]
+        films = [self.t_search.Value.strip()]
         films_not_found = []
         # if not films:
         #     return
