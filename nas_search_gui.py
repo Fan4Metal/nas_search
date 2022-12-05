@@ -11,6 +11,7 @@ import threading
 from glob import glob, iglob
 from datetime import datetime
 import time
+import subprocess
 
 import wx
 import wx.adv
@@ -19,7 +20,6 @@ from pymediainfo import MediaInfo
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
 VER = '0.1.6'
-
 
 def convert_bytes(num):
     """
@@ -471,17 +471,17 @@ class MyFrame(wx.Frame):
                         'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
                     return
 
-        os.system(f'explorer "{d_path}"')
+        subprocess.Popen(f'explorer "{d_path}"', shell=True)
 
     def onPlayFile(self, event):
         path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
         if os.path.isfile(path):
-            os.system(f'"{path}"')
+            subprocess.Popen(f'"{path}"', shell=True)
 
     def onOpenDir(self, event):
-        path = os.path.dirname(self.mainlist.GetItemText(self.mainlist.FocusedItem, 1))
-        os.system(f'explorer "{path}"')
-
+        path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
+        subprocess.Popen(f'explorer /select,"{path}"', shell=True)
+        
     def onDelItem(self, event):
         for i in range(self.mainlist.SelectedItemCount):
             selected = self.mainlist.GetFirstSelected()
