@@ -16,6 +16,7 @@ import subprocess
 import wx
 import wx.adv
 from pymediainfo import MediaInfo
+import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
@@ -342,7 +343,7 @@ class MyFrame(wx.Frame):
         self.mainlist.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
 
         # Кнопка
-        self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Сохранить')
+        self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Скопировать')
         self.gr.Add(self.b_save, pos=(2, 2), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
 
@@ -437,6 +438,41 @@ class MyFrame(wx.Frame):
             if not flag:
                 films_not_found.append(film)
 
+    # создание симлинков
+    # def onSave(self, event):
+    #     if self.mainlist.GetItemCount() == 0:
+    #         return
+    #     with wx.DirDialog(None, "Выбор папки...", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as d_dialog:
+    #         if d_dialog.ShowModal() == wx.ID_CANCEL:
+    #             return
+    #         d_path = d_dialog.GetPath()
+    #     for i in range(self.mainlist.GetItemCount()):
+    #         if self.mainlist.IsItemChecked(i):
+    #             src = self.mainlist.GetItemText(i, 1)
+    #             if not os.path.isfile(src):
+    #                 continue
+    #             dst = os.path.join(d_path, os.path.basename(src))
+    #             try:
+    #                 os.symlink(src, dst)
+    #             except FileExistsError:
+    #                 try:
+    #                     os.remove(dst)
+    #                     os.symlink(src, dst)
+    #                 except OSError:
+    #                     wx.MessageDialog(
+    #                         self,
+    #                         'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
+    #                         'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+    #                     return
+    #             except OSError:
+    #                 wx.MessageDialog(
+    #                     self,
+    #                     'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
+    #                     'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+    #                 return
+
+    #     subprocess.Popen(f'explorer "{d_path}"', shell=True)
+
     def onSave(self, event):
         if self.mainlist.GetItemCount() == 0:
             return
@@ -449,24 +485,11 @@ class MyFrame(wx.Frame):
                 src = self.mainlist.GetItemText(i, 1)
                 if not os.path.isfile(src):
                     continue
-                dst = os.path.join(d_path, os.path.basename(src))
+                dst = d_path
                 try:
-                    os.symlink(src, dst)
-                except FileExistsError:
-                    try:
-                        os.remove(dst)
-                        os.symlink(src, dst)
-                    except OSError:
-                        wx.MessageDialog(
-                            self,
-                            'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
-                            'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-                        return
-                except OSError:
-                    wx.MessageDialog(
-                        self,
-                        'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
-                        'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+                    winutils.copy(src=src, dst=dst)
+                except Exception:
+                    wx.MessageDialog(self, 'Копирование прервано!', 'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
                     return
 
         subprocess.Popen(f'explorer "{d_path}"', shell=True)
@@ -482,7 +505,7 @@ class MyFrame(wx.Frame):
             subprocess.Popen(f'explorer /select,"{path}"', shell=True)
         else:
             subprocess.Popen(f'explorer "{os.path.dirname(path)}"', shell=True)
-        
+
     def onDelItem(self, event):
         for i in range(self.mainlist.SelectedItemCount):
             selected = self.mainlist.GetFirstSelected()
