@@ -20,7 +20,8 @@ import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.7'
+VER = '0.1.8'
+
 
 def convert_bytes(num):
     """
@@ -100,8 +101,7 @@ class Mp4Info:
                 self.width, self.height = track.width, track.height
         self.data = self.media_info.tracks[0].to_data()  # type: ignore
         self.filesize = self.data['file_size']
-        if "title" in self.data and 'description' in self.data and 'longdescription' in self.data and self.data[
-                'cover'] == "Yes":
+        if "title" in self.data and 'description' in self.data and 'longdescription' in self.data and self.data['cover'] == "Yes":
             self.tags = True
 
 
@@ -146,10 +146,7 @@ class FileLocation(wx.Dialog):
         self.b_open_folder = wx.Button(self.panel, wx.ID_ANY, label="Открыть", size=self.FromDIP((60, 25)))
         self.Bind(wx.EVT_BUTTON, self.onOpenFolder, id=self.b_open_folder.GetId())
         self.box1g.Add(self.label1, flag=wx.ALIGN_CENTRE_VERTICAL | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
-        self.box1g.Add(self.t_nas_location,
-                       proportion=1,
-                       flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
-                       border=5)
+        self.box1g.Add(self.t_nas_location, proportion=1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
         self.box1g.Add(self.b_open_folder, flag=wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=5)
 
         self.btn_ok = wx.Button(self.panel, wx.ID_OK, label="Начать", size=self.FromDIP((100, 25)))
@@ -198,11 +195,9 @@ class IndexingPanel(wx.Dialog):
         self.scan(srs, dest, self.label1)
         self.Hide()
         if result:
-            wx.MessageDialog(self, 'Создание индекса завершено!', 'Создание индекса',
-                             wx.OK | wx.ICON_INFORMATION).ShowModal()
+            wx.MessageDialog(self, 'Создание индекса завершено!', 'Создание индекса', wx.OK | wx.ICON_INFORMATION).ShowModal()
         else:
-            wx.MessageDialog(self, 'Создание индекса отменено!', 'Создание индекса',
-                             wx.OK | wx.ICON_WARNING).ShowModal()
+            wx.MessageDialog(self, 'Создание индекса отменено!', 'Создание индекса', wx.OK | wx.ICON_WARNING).ShowModal()
         self.Destroy()
 
     @staticmethod
@@ -231,16 +226,11 @@ class NotFoundPanel(wx.Dialog):
         self.panel = wx.Panel(self)
         self.box1v = wx.BoxSizer(wx.VERTICAL)
         self.label1 = wx.StaticText(self.panel, label="Следующие фильмы не найдены!")
-        self.list_notfound = wx.TextCtrl(self.panel,
-                                         value="\n".join(not_found),
-                                         style=wx.TE_READONLY | wx.ALIGN_TOP | wx.TE_MULTILINE)
+        self.list_notfound = wx.TextCtrl(self.panel, value="\n".join(not_found), style=wx.TE_READONLY | wx.ALIGN_TOP | wx.TE_MULTILINE)
         self.btn = wx.Button(self.panel, wx.ID_OK, label="OK", size=self.FromDIP((100, 25)))
 
         self.box1v.Add(self.label1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
-        self.box1v.Add(self.list_notfound,
-                       proportion=1,
-                       flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
-                       border=10)
+        self.box1v.Add(self.list_notfound, proportion=1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.box1v.Add(self.btn, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.panel.SetSizer(self.box1v)
 
@@ -318,11 +308,7 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onEnter, id=self.b_search.GetId())
 
         self.mainlist = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
-        self.gr.Add(self.mainlist,
-                    pos=(1, 0),
-                    span=(1, 3),
-                    flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT,
-                    border=10)
+        self.gr.Add(self.mainlist, pos=(1, 0), span=(1, 3), flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.gr.AddGrowableCol(1)
         self.gr.AddGrowableRow(1)
         self.panel.SetSizer(self.gr)
@@ -365,8 +351,7 @@ class MyFrame(wx.Frame):
             return
         films = [self.t_search.Value.strip()]
         films_not_found = []
-        open_thr = threading.Thread(target=self.open_files_thread,
-                                    args=(films, self.nas, films_not_found, self.mainlist))
+        open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
         self.panel.Disable()
         while open_thr.is_alive():
@@ -398,8 +383,7 @@ class MyFrame(wx.Frame):
         films = file_to_list(path_name)
 
         films_not_found = []
-        open_thr = threading.Thread(target=self.open_files_thread,
-                                    args=(films, self.nas, films_not_found, self.mainlist))
+        open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
         self.panel.Disable()
         while open_thr.is_alive():
