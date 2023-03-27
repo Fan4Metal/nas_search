@@ -2,7 +2,7 @@
 # [x] Написать класс инициализации индекса (nas.txt)
 # [x] Добавить пункт - "открыть файл индекса nas.txt"
 # [x] Таймер при создании индекса
-# [ ] Параметр запуска для создания индекса
+# [x] Параметр запуска для создания индекса
 # [ ] Файл настроек или настройки в реестре?
 
 import ctypes
@@ -13,6 +13,9 @@ from datetime import datetime
 import time
 import subprocess
 
+import argparse_ru
+import argparse
+
 import wx
 import wx.adv
 from pymediainfo import MediaInfo
@@ -20,7 +23,7 @@ import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.8'
+VER = '0.1.9'
 
 
 def convert_bytes(num):
@@ -542,7 +545,7 @@ class MyFrame(wx.Frame):
         self.l_nasinfo.Enable()
 
 
-def main():
+def run_gui():
     app = wx.App()
     top = MyFrame(None, title=f"NAS Search GUI (ver {VER})")
     top.SetIcon(wx.Icon(get_resource_path("favicon.ico")))
@@ -552,6 +555,31 @@ def main():
     top.Show()
     top.post_init('nas.txt')
     app.MainLoop()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog='Nas Search GUI',
+        description='Утилита для быстрого поиска файлов на NAS.',
+    )
+    parser.add_argument("-i",
+                        "--index",
+                        nargs=2,
+                        help="создает файл индекса. Первый параметр - путь до NAS (z:\), второй - имя файла индекса (nas.txt)")
+    args = parser.parse_args()
+    if args.index:
+        path, file = args.index[0], args.index[1]
+        print(path, file)
+        global stop_flag, result
+        stop_flag = False
+        result = True
+        nas_scan1(path, file)
+        if result:
+            print(f'Создан файл индекса: {file}')
+        else:
+            print('Создание индекса приостановлено.')
+    else:
+        run_gui()
 
 
 if __name__ == '__main__':
