@@ -378,7 +378,16 @@ class MyFrame(wx.Frame):
     def onRightDownItem(self, event):
         self.PopupMenu(self.ctx_item, (self.x, self.y))
 
+    
     def onOpenFile(self, event):
+        
+        def filter_symbols(title_list):
+            filtered_list = [] 
+            for title in title_list:
+                trtable = title.maketrans('', '', '\/:*?"<>')
+                filtered_list.append(title.translate(trtable))
+            return filtered_list
+        
         with wx.FileDialog(self,
                            "Открыть файл...",
                            os.getcwd(),
@@ -389,7 +398,7 @@ class MyFrame(wx.Frame):
                 return
             path_name = fileDialog.GetPath()
         films = file_to_list(path_name)
-
+        films = filter_symbols(films)
         films_not_found = []
         open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
@@ -432,7 +441,6 @@ class MyFrame(wx.Frame):
 
     # создание симлинков
     def _onSimlink(self):
-        print("simlink")
         if self.mainlist.GetItemCount() == 0:
             return
         with wx.DirDialog(None, "Выбор папки...", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as d_dialog:
