@@ -251,12 +251,20 @@ class PopMenu(wx.Menu):
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onOpenDir, id=self.m_opendir.GetId())
         self.m_del = wx.MenuItem(self, wx.ID_ANY, 'Удалить из списка')
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelItem, id=self.m_del.GetId())
+        
+        self.m_checkall = wx.MenuItem(self, wx.ID_ANY, 'Отметить все')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onCheckAllItems, id=self.m_checkall.GetId())
+        self.m_uncheckall = wx.MenuItem(self, wx.ID_ANY, 'Снять все отметки')
+        self.Bind(wx.EVT_MENU, parent.Parent.Parent.onUnCheckAllItems, id=self.m_uncheckall.GetId())
         self.m_delall = wx.MenuItem(self, wx.ID_ANY, 'Удалить все')
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelAllItems, id=self.m_delall.GetId())
 
         self.Append(self.m_openfile)
         self.Append(self.m_opendir)
         self.Append(self.m_del)
+        self.AppendSeparator()
+        self.Append(self.m_checkall)
+        self.Append(self.m_uncheckall)
         self.AppendSeparator()
         self.Append(self.m_delall)
 
@@ -519,6 +527,14 @@ class MyFrame(wx.Frame):
 
     def onDelAllItems(self, event):
         self.mainlist.DeleteAllItems()
+
+    def onCheckAllItems(self, event):
+        for i in range(self.mainlist.GetItemCount()):
+            self.mainlist.CheckItem(i, check=True)
+
+    def onUnCheckAllItems(self, event):
+        for i in range(self.mainlist.GetItemCount()):
+            self.mainlist.CheckItem(i, check=False)
 
     def onKeyboardHandle(self, event):
         key = event.GetKeyCode()
