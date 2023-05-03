@@ -23,7 +23,7 @@ import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.9'
+VER = '0.1.10'
 
 
 def convert_bytes(num):
@@ -301,17 +301,17 @@ class MyFrame(wx.Frame):
 
         # ========== Основные элементы ==========
         self.panel = wx.Panel(self)
-        self.gr = wx.GridBagSizer(3, 3)
+        self.gr = wx.GridBagSizer(3, 4)
 
         self.t_search = wx.TextCtrl(self.panel, size=self.FromDIP((850, 25)), style=wx.TE_PROCESS_ENTER)
-        self.gr.Add(self.t_search, pos=(0, 0), span=(1, 2), flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
+        self.gr.Add(self.t_search, pos=(0, 0), span=(1, 3), flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
         self.Bind(wx.EVT_TEXT_ENTER, self.onEnter)
         self.b_search = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Поиск')
-        self.gr.Add(self.b_search, pos=(0, 2), flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
+        self.gr.Add(self.b_search, pos=(0, 3), flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onEnter, id=self.b_search.GetId())
 
         self.mainlist = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
-        self.gr.Add(self.mainlist, pos=(1, 0), span=(1, 3), flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr.Add(self.mainlist, pos=(1, 0), span=(1, 4), flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.gr.AddGrowableCol(1)
         self.gr.AddGrowableRow(1)
         self.panel.SetSizer(self.gr)
@@ -333,8 +333,13 @@ class MyFrame(wx.Frame):
 
         # Кнопка
         self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Скопировать')
-        self.gr.Add(self.b_save, pos=(2, 2), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr.Add(self.b_save, pos=(2, 3), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
+
+        # Чекбокс
+        self.save_option = wx.CheckBox(self.panel, label='Создавать симлинки')
+        self.save_option.SetValue(True)
+        self.gr.Add(self.save_option, pos=(2, 2), flag=wx.EXPAND | wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT, border=10)
 
         # Текст - информация о статусе индекса
         self.l_nasinfo = wx.StaticText(self.panel, label='')
@@ -426,41 +431,41 @@ class MyFrame(wx.Frame):
                 films_not_found.append(film)
 
     # создание симлинков
-    # def onSave(self, event):
-    #     if self.mainlist.GetItemCount() == 0:
-    #         return
-    #     with wx.DirDialog(None, "Выбор папки...", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as d_dialog:
-    #         if d_dialog.ShowModal() == wx.ID_CANCEL:
-    #             return
-    #         d_path = d_dialog.GetPath()
-    #     for i in range(self.mainlist.GetItemCount()):
-    #         if self.mainlist.IsItemChecked(i):
-    #             src = self.mainlist.GetItemText(i, 1)
-    #             if not os.path.isfile(src):
-    #                 continue
-    #             dst = os.path.join(d_path, os.path.basename(src))
-    #             try:
-    #                 os.symlink(src, dst)
-    #             except FileExistsError:
-    #                 try:
-    #                     os.remove(dst)
-    #                     os.symlink(src, dst)
-    #                 except OSError:
-    #                     wx.MessageDialog(
-    #                         self,
-    #                         'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
-    #                         'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-    #                     return
-    #             except OSError:
-    #                 wx.MessageDialog(
-    #                     self,
-    #                     'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
-    #                     'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
-    #                 return
+    def _onSimlink(self):
+        print("simlink")
+        if self.mainlist.GetItemCount() == 0:
+            return
+        with wx.DirDialog(None, "Выбор папки...", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as d_dialog:
+            if d_dialog.ShowModal() == wx.ID_CANCEL:
+                return
+            d_path = d_dialog.GetPath()
+        for i in range(self.mainlist.GetItemCount()):
+            if self.mainlist.IsItemChecked(i):
+                src = self.mainlist.GetItemText(i, 1)
+                if not os.path.isfile(src):
+                    continue
+                dst = os.path.join(d_path, os.path.basename(src))
+                try:
+                    os.symlink(src, dst)
+                except FileExistsError:
+                    try:
+                        os.remove(dst)
+                        os.symlink(src, dst)
+                    except OSError:
+                        wx.MessageDialog(
+                            self,
+                            'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
+                            'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+                        return
+                except OSError:
+                    wx.MessageDialog(
+                        self,
+                        'Не удалось создать символьную ссылку! Необходимо включить режим разработчика или запустить программу с правами администратора.',
+                        'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
+                    return
+        subprocess.Popen(f'explorer "{d_path}"', shell=True)
 
-    #     subprocess.Popen(f'explorer "{d_path}"', shell=True)
-
-    def onSave(self, event):
+    def _onCopy(self):
         if self.mainlist.GetItemCount() == 0:
             return
         with wx.DirDialog(None, "Выбор папки...", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as d_dialog:
@@ -478,8 +483,13 @@ class MyFrame(wx.Frame):
                 except Exception:
                     wx.MessageDialog(self, 'Копирование прервано!', 'Ошибка', wx.OK | wx.ICON_ERROR).ShowModal()
                     return
-
         subprocess.Popen(f'explorer "{d_path}"', shell=True)
+
+    def onSave(self, event):
+        if self.save_option.GetValue():
+            self._onSimlink()
+        else:
+            self._onCopy()
 
     def onPlayFile(self, event):
         path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
