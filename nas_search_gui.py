@@ -380,6 +380,7 @@ class MyFrame(wx.Frame):
             time.sleep(0.1)
             wx.GetApp().Yield()
             continue
+        self.mark_doubles(self.mainlist)
         self.panel.Enable()
         self.t_search.Value = ""
         self.t_search.SetFocus()
@@ -420,12 +421,25 @@ class MyFrame(wx.Frame):
             time.sleep(0.1)
             wx.GetApp().Yield()
             continue
+        self.mark_doubles(self.mainlist)
         self.panel.Enable()
         if films_not_found:
             self.notfoundpanel = NotFoundPanel(self, "Внимание!", films_not_found)
             self.notfoundpanel.SetClientSize(self.FromDIP(wx.Size((300, 200))))
             self.notfoundpanel.CentreOnParent()
             self.notfoundpanel.ShowModal()
+
+    @staticmethod
+    def mark_doubles(list: wx.ListCtrl):
+        for i in range(list.GetItemCount()):
+            list.SetItemBackgroundColour(i, wx.WHITE)
+        for i in range(list.GetItemCount() - 1):
+            file_name_1 = os.path.basename(list.GetItemText(i, 1))
+            for j in range(i + 1, list.GetItemCount()):
+                file_name_2 = os.path.basename(list.GetItemText(j, 1))
+                if file_name_1 == file_name_2:
+                    list.SetItemBackgroundColour(i, wx.YELLOW)
+                    list.SetItemBackgroundColour(j, wx.YELLOW)
 
     @staticmethod
     def open_files_thread(films, nas_obj, films_not_found, list: wx.ListCtrl):
@@ -538,6 +552,7 @@ class MyFrame(wx.Frame):
             self.mainlist.DeleteItem(selected)
         self.mainlist.Select(self.mainlist.FocusedItem)
         self.CountChecked(self)
+        self.mark_doubles(self.mainlist)
 
     def onDelAllItems(self, event):
         self.mainlist.DeleteAllItems()
