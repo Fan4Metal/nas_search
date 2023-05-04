@@ -251,7 +251,7 @@ class PopMenu(wx.Menu):
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onOpenDir, id=self.m_opendir.GetId())
         self.m_del = wx.MenuItem(self, wx.ID_ANY, 'Удалить из списка')
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelItem, id=self.m_del.GetId())
-        
+
         self.m_checkall = wx.MenuItem(self, wx.ID_ANY, 'Отметить все')
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onCheckAllItems, id=self.m_checkall.GetId())
         self.m_uncheckall = wx.MenuItem(self, wx.ID_ANY, 'Снять все отметки')
@@ -386,16 +386,15 @@ class MyFrame(wx.Frame):
     def onRightDownItem(self, event):
         self.PopupMenu(self.ctx_item, (self.x, self.y))
 
-    
     def onOpenFile(self, event):
-        
+
         def filter_symbols(title_list):
-            filtered_list = [] 
+            filtered_list = []
             for title in title_list:
                 trtable = title.maketrans('', '', '\/:*?"<>')
                 filtered_list.append(title.translate(trtable))
             return filtered_list
-        
+
         with wx.FileDialog(self,
                            "Открыть файл...",
                            os.getcwd(),
@@ -502,10 +501,18 @@ class MyFrame(wx.Frame):
         subprocess.Popen(f'explorer "{d_path}"', shell=True)
 
     def onSave(self, event):
-        if self.save_option.GetValue():
-            self._onSimlink()
-        else:
-            self._onCopy()
+
+        def is_checked():
+            for i in range(self.mainlist.GetItemCount()):
+                if self.mainlist.IsItemChecked(i):
+                    return True
+            return False
+
+        if is_checked():
+            if self.save_option.GetValue():
+                self._onSimlink()
+            else:
+                self._onCopy()
 
     def onPlayFile(self, event):
         path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
