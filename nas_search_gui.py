@@ -23,7 +23,7 @@ import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.10'
+VER = '0.1.11'
 
 
 def convert_bytes(num):
@@ -252,7 +252,7 @@ class PopMenu(wx.Menu):
         self.m_del = wx.MenuItem(self, wx.ID_ANY, 'Удалить из списка')
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onDelItem, id=self.m_del.GetId())
 
-        self.m_checkall = wx.MenuItem(self, wx.ID_ANY, 'Отметить все')
+        self.m_checkall = wx.MenuItem(self, wx.ID_ANY, 'Выбрать все')
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onCheckAllItems, id=self.m_checkall.GetId())
         self.m_uncheckall = wx.MenuItem(self, wx.ID_ANY, 'Снять все отметки')
         self.Bind(wx.EVT_MENU, parent.Parent.Parent.onUnCheckAllItems, id=self.m_uncheckall.GetId())
@@ -325,7 +325,7 @@ class MyFrame(wx.Frame):
         self.panel.SetSizer(self.gr)
 
         # Список
-        self.mainlist.InsertColumn(0, 'Фильм', width=self.FromDIP(160))
+        self.mainlist.InsertColumn(0, 'Запрос', width=self.FromDIP(160))
         self.mainlist.InsertColumn(1, 'Путь к файлу', width=self.FromDIP(556))
         self.mainlist.InsertColumn(2, 'Размер', width=self.FromDIP(100))
         self.mainlist.InsertColumn(3, 'Разрешение', width=self.FromDIP(90))
@@ -338,20 +338,26 @@ class MyFrame(wx.Frame):
         self.mainlist.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightDownItem)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onPlayFile, id=self.mainlist.GetId())
         self.mainlist.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
+        self.mainlist.Bind(wx.EVT_LIST_ITEM_CHECKED, self.CountChecked)
+        self.mainlist.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.CountChecked)
 
-        # Кнопка
-        self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Скопировать')
-        self.gr.Add(self.b_save, pos=(2, 3), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
-        self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
+        # Текст - информация о статусе индекса
+        self.l_nasinfo = wx.StaticText(self.panel, label=40 * '_')
+        self.gr.Add(self.l_nasinfo, pos=(2, 0), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+
+        # Счетчик отметок
+        self.l_counter = wx.StaticText(self.panel, label='Выбрано 0')
+        self.gr.Add(self.l_counter, pos=(2, 1), flag=wx.ALIGN_RIGHT | wx.EXPAND | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
 
         # Чекбокс
         self.save_option = wx.CheckBox(self.panel, label='Создавать симлинки')
         self.save_option.SetValue(True)
         self.gr.Add(self.save_option, pos=(2, 2), flag=wx.EXPAND | wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT, border=10)
 
-        # Текст - информация о статусе индекса
-        self.l_nasinfo = wx.StaticText(self.panel, label='')
-        self.gr.Add(self.l_nasinfo, pos=(2, 0), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        # Кнопка
+        self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Скопировать')
+        self.gr.Add(self.b_save, pos=(2, 3), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
 
     def post_init(self, nas_location):
         self.nas = NasIndex(nas_location)
@@ -531,9 +537,11 @@ class MyFrame(wx.Frame):
             selected = self.mainlist.GetFirstSelected()
             self.mainlist.DeleteItem(selected)
         self.mainlist.Select(self.mainlist.FocusedItem)
+        self.CountChecked(self)
 
     def onDelAllItems(self, event):
         self.mainlist.DeleteAllItems()
+        self.CountChecked(self)
 
     def onCheckAllItems(self, event):
         for i in range(self.mainlist.GetItemCount()):
@@ -584,6 +592,13 @@ class MyFrame(wx.Frame):
         self.l_nasinfo.Disable()
         self.post_init(path_name)
         self.l_nasinfo.Enable()
+
+    def CountChecked(self, event):
+        checked = 0
+        for i in range(self.mainlist.GetItemCount()):
+            if self.mainlist.IsItemChecked(i):
+                checked += 1
+        self.l_counter.Label = 'Выбрано: ' + str(checked)
 
 
 def run_gui():
