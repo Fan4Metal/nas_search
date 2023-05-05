@@ -23,7 +23,7 @@ import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.11'
+VER = '0.1.12'
 
 
 def convert_bytes(num):
@@ -431,13 +431,35 @@ class MyFrame(wx.Frame):
 
     @staticmethod
     def mark_doubles(list: wx.ListCtrl):
+
+        # Пробуем убрать год в скобках и опять сравниваем имена
+        def check(name1, name2):
+            name1 = os.path.splitext(name1)[0]
+            name2 = os.path.splitext(name2)[0]
+            if name1 == name2:
+                return True
+            try:
+                name1 = re.findall(r'(.+)\s\(\d{4}\)', name1)[0]
+            except:
+                pass
+            try:
+                name2 = re.findall(r'(.+)\s\(\d{4}\)', name2)[0]
+            except:
+                pass
+            if name1 == name2:
+                return True
+            else:
+                return False
+
         for i in range(list.GetItemCount()):
+            if list.GetItemBackgroundColour(i) == wx.RED:
+                continue
             list.SetItemBackgroundColour(i, wx.WHITE)
         for i in range(list.GetItemCount() - 1):
             file_name_1 = os.path.basename(list.GetItemText(i, 1))
             for j in range(i + 1, list.GetItemCount()):
                 file_name_2 = os.path.basename(list.GetItemText(j, 1))
-                if file_name_1 == file_name_2:
+                if check(file_name_1, file_name_2):
                     list.SetItemBackgroundColour(i, wx.YELLOW)
                     list.SetItemBackgroundColour(j, wx.YELLOW)
 
