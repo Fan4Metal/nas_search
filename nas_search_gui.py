@@ -4,6 +4,7 @@
 # [x] Таймер при создании индекса
 # [x] Параметр запуска для создания индекса
 # [ ] Файл настроек или настройки в реестре?
+# [ ] Добавить поиск дублей в базе
 
 import ctypes
 import os, sys, re
@@ -364,7 +365,7 @@ class MyFrame(wx.Frame):
         if self.nas.is_ready():
             self.l_nasinfo.Label = f"{os.path.basename(nas_location)}: (дата {self.nas.date}, файлов {len(self.nas.paths)})"
         else:
-            self.l_nasinfo.Label = f"Индекс не загружен"
+            self.l_nasinfo.Label = "Индекс не загружен"
 
     def onEnter(self, event):
         if not self.t_search.Value.strip():
@@ -372,6 +373,7 @@ class MyFrame(wx.Frame):
             self.t_search.SetFocus()
             return
         films = [self.t_search.Value.strip()]
+        films = self.filter_symbols(films)
         films_not_found = []
         open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
@@ -393,15 +395,15 @@ class MyFrame(wx.Frame):
     def onRightDownItem(self, event):
         self.PopupMenu(self.ctx_item, (self.x, self.y))
 
+    @staticmethod
+    def filter_symbols(title_list):
+        filtered_list = []
+        for title in title_list:
+            trtable = title.maketrans('', '', '\/:*?"<>«»')
+            filtered_list.append(title.translate(trtable))
+        return filtered_list
+
     def onOpenFile(self, event):
-
-        def filter_symbols(title_list):
-            filtered_list = []
-            for title in title_list:
-                trtable = title.maketrans('', '', '\/:*?"<>')
-                filtered_list.append(title.translate(trtable))
-            return filtered_list
-
         with wx.FileDialog(self,
                            "Открыть файл...",
                            os.getcwd(),
@@ -412,7 +414,7 @@ class MyFrame(wx.Frame):
                 return
             path_name = fileDialog.GetPath()
         films = file_to_list(path_name)
-        films = filter_symbols(films)
+        films = self.filter_symbols(films)
         films_not_found = []
         open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
@@ -432,7 +434,7 @@ class MyFrame(wx.Frame):
     @staticmethod
     def mark_doubles(list: wx.ListCtrl):
 
-        # Пробуем убрать год в скобках и опять сравниваем имена
+        # Сравниваем имена без расширений, потом пробуем убрать год в скобках и опять сравниваем имена
         def check(name1, name2):
             name1 = os.path.splitext(name1)[0]
             name2 = os.path.splitext(name2)[0]
@@ -460,8 +462,10 @@ class MyFrame(wx.Frame):
             for j in range(i + 1, list.GetItemCount()):
                 file_name_2 = os.path.basename(list.GetItemText(j, 1))
                 if check(file_name_1, file_name_2):
-                    list.SetItemBackgroundColour(i, wx.YELLOW)
-                    list.SetItemBackgroundColour(j, wx.YELLOW)
+                    if list.GetItemBackgroundColour(i) != wx.RED:
+                        list.SetItemBackgroundColour(i, wx.YELLOW)
+                    if list.GetItemBackgroundColour(j) != wx.RED:
+                        list.SetItemBackgroundColour(j, wx.YELLOW)
 
     @staticmethod
     def open_files_thread(films, nas_obj, films_not_found, list: wx.ListCtrl):
