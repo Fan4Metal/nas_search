@@ -10,7 +10,7 @@ import ctypes
 import os, sys, re
 import threading
 from glob import glob, iglob
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import subprocess
 
@@ -115,8 +115,8 @@ class NasIndex:
         self.paths = []
         self.file_names = []
         if os.path.isfile(index_path):
-            self.ready = True
             self.paths, self.file_names = self.load_nas_file(index_path)
+            self.ready = True
         else:
             self.ready = False
 
@@ -315,6 +315,9 @@ class MyFrame(wx.Frame):
         self.t_search = wx.TextCtrl(self.panel, size=self.FromDIP((850, 25)), style=wx.TE_PROCESS_ENTER)
         self.gr.Add(self.t_search, pos=(0, 0), span=(1, 3), flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
         self.Bind(wx.EVT_TEXT_ENTER, self.onEnter)
+
+        self.t_search.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
+
         self.b_search = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Поиск')
         self.gr.Add(self.b_search, pos=(0, 3), flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onEnter, id=self.b_search.GetId())
@@ -337,7 +340,7 @@ class MyFrame(wx.Frame):
         self.ctx_item = PopMenu(self.mainlist)
         self.mainlist.Bind(wx.EVT_RIGHT_DOWN, self.onRightDown)
         self.mainlist.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onRightDownItem)
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onPlayFile, id=self.mainlist.GetId())
+        self.mainlist.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onPlayFile)
         self.mainlist.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
         self.mainlist.Bind(wx.EVT_LIST_ITEM_CHECKED, self.CountChecked)
         self.mainlist.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.CountChecked)
@@ -361,6 +364,16 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
 
     def post_init(self, nas_location):
+        
+        def check_nas_date(date_txt):
+            date_obj = datetime.strptime(date_txt, '%d.%m.%Y')
+            now = datetime.now()
+            delta = now - date_obj
+            if delta > timedelta(days=1):
+                return False
+            else:
+                return True
+        
         self.nas = NasIndex(nas_location)
         if self.nas.is_ready():
             self.l_nasinfo.Label = f"{os.path.basename(nas_location)}: (дата {self.nas.date}, файлов {len(self.nas.paths)})"
@@ -375,17 +388,32 @@ class MyFrame(wx.Frame):
         films = [self.t_search.Value.strip()]
         films = self.filter_symbols(films)
         films_not_found = []
+        global stop_flag
+        stop_flag = False
         open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
-        self.panel.Disable()
+        self.reset_colour(self.mainlist)
+        self.disable_elements()
         while open_thr.is_alive():
             time.sleep(0.1)
             wx.GetApp().Yield()
             continue
+        self.enable_elements()
         self.mark_doubles(self.mainlist)
-        self.panel.Enable()
         self.t_search.Value = ""
         self.t_search.SetFocus()
+
+    def disable_elements(self):
+        self.b_search.Disable()
+        self.mainlist.Disable()
+        self.b_save.Disable()
+        self.save_option.Disable()
+
+    def enable_elements(self):
+        self.b_search.Enable()
+        self.mainlist.Enable()
+        self.b_save.Enable()
+        self.save_option.Enable()
 
     def onRightDown(self, event):
         self.x = event.GetX()
@@ -416,15 +444,18 @@ class MyFrame(wx.Frame):
         films = file_to_list(path_name)
         films = self.filter_symbols(films)
         films_not_found = []
+        global stop_flag
+        stop_flag = False
         open_thr = threading.Thread(target=self.open_files_thread, args=(films, self.nas, films_not_found, self.mainlist))
         open_thr.start()
-        self.panel.Disable()
+        self.reset_colour(self.mainlist)
+        self.disable_elements()
         while open_thr.is_alive():
             time.sleep(0.1)
             wx.GetApp().Yield()
             continue
+        self.enable_elements()
         self.mark_doubles(self.mainlist)
-        self.panel.Enable()
         if films_not_found:
             self.notfoundpanel = NotFoundPanel(self, "Внимание!", films_not_found)
             self.notfoundpanel.SetClientSize(self.FromDIP(wx.Size((300, 200))))
@@ -457,7 +488,7 @@ class MyFrame(wx.Frame):
             if list.GetItemBackgroundColour(i) == wx.RED:
                 continue
             list.SetItemBackgroundColour(i, wx.WHITE)
-        for i in range(list.GetItemCount() - 1):
+        for i in range(list.GetItemCount()):
             file_name_1 = os.path.basename(list.GetItemText(i, 1))
             for j in range(i + 1, list.GetItemCount()):
                 file_name_2 = os.path.basename(list.GetItemText(j, 1))
@@ -466,6 +497,11 @@ class MyFrame(wx.Frame):
                         list.SetItemBackgroundColour(i, wx.YELLOW)
                     if list.GetItemBackgroundColour(j) != wx.RED:
                         list.SetItemBackgroundColour(j, wx.YELLOW)
+
+    @staticmethod
+    def reset_colour(list: wx.ListCtrl):
+        for i in range(list.GetItemCount()):
+            list.SetItemBackgroundColour(i, (-1, -1, -1, 255))
 
     @staticmethod
     def open_files_thread(films, nas_obj, films_not_found, list: wx.ListCtrl):
@@ -478,6 +514,9 @@ class MyFrame(wx.Frame):
         for film in films:
             flag = False  # фильм найден
             for j, file_name in enumerate(file_names):
+                global stop_flag
+                if stop_flag:
+                    return
                 if find_whole_word(film)(file_name) != None:
                     try:
                         film_tag = Mp4Info(paths[j])
@@ -596,6 +635,9 @@ class MyFrame(wx.Frame):
         key = event.GetKeyCode()
         if key == wx.WXK_DELETE:
             self.onDelItem(self)
+        if key == wx.WXK_ESCAPE:
+            global stop_flag
+            stop_flag = True
         event.Skip()
 
     def onQuit(self, event):
