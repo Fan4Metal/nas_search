@@ -366,17 +366,18 @@ class MyFrame(wx.Frame):
     def post_init(self, nas_location):
         
         def check_nas_date(date_txt):
+            '''Проверка, что nas.txt создан не более 1 дня назад'''
             date_obj = datetime.strptime(date_txt, '%d.%m.%Y')
             now = datetime.now()
             delta = now - date_obj
             if delta > timedelta(days=1):
-                return False
+                return '(!)' 
             else:
-                return True
+                return ''
         
         self.nas = NasIndex(nas_location)
         if self.nas.is_ready():
-            self.l_nasinfo.Label = f"{os.path.basename(nas_location)}: (дата {self.nas.date}, файлов {len(self.nas.paths)})"
+            self.l_nasinfo.Label = f"{os.path.basename(nas_location)}: (дата {self.nas.date}{check_nas_date(self.nas.date)}, файлов {len(self.nas.paths)})"
         else:
             self.l_nasinfo.Label = "Индекс не загружен"
 
