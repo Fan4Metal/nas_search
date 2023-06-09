@@ -5,6 +5,7 @@
 # [x] Параметр запуска для создания индекса
 # [ ] Файл настроек или настройки в реестре?
 # [ ] Добавить поиск дублей в базе
+# [ ] Рефакторинг лейаута + статусбар?
 
 import ctypes
 import os, sys, re
@@ -310,25 +311,16 @@ class MyFrame(wx.Frame):
 
         # ========== Основные элементы ==========
         self.panel = wx.Panel(self)
-        self.gr = wx.GridBagSizer(3, 4)
-
+        
         self.t_search = wx.TextCtrl(self.panel, size=self.FromDIP((850, 25)), style=wx.TE_PROCESS_ENTER)
-        self.gr.Add(self.t_search, pos=(0, 0), span=(1, 3), flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
+        
         self.Bind(wx.EVT_TEXT_ENTER, self.onEnter)
-
         self.t_search.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
-
         self.b_search = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Поиск')
-        self.gr.Add(self.b_search, pos=(0, 3), flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
-        self.Bind(wx.EVT_BUTTON, self.onEnter, id=self.b_search.GetId())
-
-        self.mainlist = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
-        self.gr.Add(self.mainlist, pos=(1, 0), span=(1, 4), flag=wx.EXPAND | wx.TOP | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
-        self.gr.AddGrowableCol(1)
-        self.gr.AddGrowableRow(1)
-        self.panel.SetSizer(self.gr)
-
+        self.b_search.Bind(wx.EVT_BUTTON, self.onEnter)
+                
         # Список
+        self.mainlist = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
         self.mainlist.InsertColumn(0, 'Запрос', width=self.FromDIP(160))
         self.mainlist.InsertColumn(1, 'Путь к файлу', width=self.FromDIP(556))
         self.mainlist.InsertColumn(2, 'Размер', width=self.FromDIP(100))
@@ -346,22 +338,38 @@ class MyFrame(wx.Frame):
         self.mainlist.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.CountChecked)
 
         # Текст - информация о статусе индекса
-        self.l_nasinfo = wx.StaticText(self.panel, label=40 * '_')
-        self.gr.Add(self.l_nasinfo, pos=(2, 0), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.l_nasinfo = wx.StaticText(self.panel, size=self.FromDIP((220, 25)))
 
         # Счетчик отметок
         self.l_counter = wx.StaticText(self.panel, label='Выбрано 0')
-        self.gr.Add(self.l_counter, pos=(2, 1), flag=wx.ALIGN_RIGHT | wx.EXPAND | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
 
         # Чекбокс
         self.save_option = wx.CheckBox(self.panel, label='Создавать симлинки')
         self.save_option.SetValue(True)
-        self.gr.Add(self.save_option, pos=(2, 2), flag=wx.EXPAND | wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT, border=10)
 
         # Кнопка
         self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Скопировать')
-        self.gr.Add(self.b_save, pos=(2, 3), flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
+
+        # настройка сайзеров 
+        self.gr = wx.BoxSizer(orient=wx.VERTICAL)
+        
+        self.gr1 = wx.BoxSizer(orient=wx.HORIZONTAL)
+        self.gr1.Add(self.t_search, proportion=1, flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
+        self.gr1.Add(self.b_search, flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
+
+        self.gr2 = wx.BoxSizer(orient=wx.HORIZONTAL)
+        self.gr2.Add(self.l_nasinfo, flag= wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr2.Add(self.l_counter, flag= wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr2.AddStretchSpacer(prop=1)
+        self.gr2.Add(self.save_option, flag=wx.EXPAND | wx.BOTTOM | wx.LEFT, border=10)
+        self.gr2.Add(self.b_save, flag= wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+
+        self.gr.Add(self.gr1, flag=wx.EXPAND)
+        self.gr.Add(self.mainlist, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
+        self.gr.Add(self.gr2, flag=wx.EXPAND)
+
+        self.panel.SetSizer(self.gr)
 
     def post_init(self, nas_location):
         
