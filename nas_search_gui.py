@@ -341,7 +341,7 @@ class MyFrame(wx.Frame):
         self.l_nasinfo = wx.StaticText(self.panel, size=self.FromDIP((220, 25)))
 
         # Счетчик отметок
-        self.l_counter = wx.StaticText(self.panel, label='Выбрано 0')
+        self.l_counter = wx.StaticText(self.panel, label='Выбрано: 0')
 
         # Чекбокс
         self.save_option = wx.CheckBox(self.panel, label='Создавать симлинки')
@@ -359,7 +359,7 @@ class MyFrame(wx.Frame):
         self.gr1.Add(self.b_search, flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
 
         self.gr2 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.gr2.Add(self.l_nasinfo, flag= wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr2.Add(self.l_nasinfo, flag=wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.gr2.Add(self.l_counter, flag= wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.gr2.AddStretchSpacer(prop=1)
         self.gr2.Add(self.save_option, flag=wx.EXPAND | wx.BOTTOM | wx.LEFT, border=10)
@@ -497,7 +497,7 @@ class MyFrame(wx.Frame):
             if list.GetItemBackgroundColour(i) == wx.RED:
                 continue
             list.SetItemBackgroundColour(i, wx.WHITE)
-        for i in range(list.GetItemCount()):
+        for i in range(list.GetItemCount() - 1):
             file_name_1 = os.path.basename(list.GetItemText(i, 1))
             for j in range(i + 1, list.GetItemCount()):
                 file_name_2 = os.path.basename(list.GetItemText(j, 1))
