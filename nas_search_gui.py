@@ -5,7 +5,8 @@
 # [x] Параметр запуска для создания индекса
 # [ ] Файл настроек или настройки в реестре?
 # [ ] Добавить поиск дублей в базе
-# [ ] Рефакторинг лейаута + статусбар?
+# [x]  Рефакторинг лейаута
+# [ ] статусбар?
 
 import ctypes
 import os, sys, re
@@ -609,9 +610,10 @@ class MyFrame(wx.Frame):
                 self._onCopy()
 
     def onPlayFile(self, event):
-        path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
-        if os.path.isfile(path):
-            subprocess.Popen(f'"{path}"', shell=True)
+        if self.mainlist.FocusedItem > -1:
+            path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
+            if os.path.isfile(path):
+                subprocess.Popen(f'"{path}"', shell=True)
 
     def onOpenDir(self, event):
         path = self.mainlist.GetItemText(self.mainlist.FocusedItem, 1)
