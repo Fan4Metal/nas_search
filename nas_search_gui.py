@@ -26,7 +26,7 @@ import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.13'
+VER = '0.1.14'
 
 
 def convert_bytes(num):
