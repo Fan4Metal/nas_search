@@ -3,7 +3,7 @@
 # [x] Добавить пункт - "открыть файл индекса nas.txt"
 # [x] Таймер при создании индекса
 # [x] Параметр запуска для создания индекса
-# [ ] Файл настроек или настройки в реестре?
+# [x] Файл настроек или настройки в реестре?
 # [ ] Добавить поиск дублей в базе
 # [x]  Рефакторинг лейаута
 # [ ] статусбар?
@@ -15,6 +15,7 @@ from glob import glob, iglob
 from datetime import datetime, timedelta
 import time
 import subprocess
+import winreg
 
 import argparse_ru
 import argparse
@@ -26,7 +27,7 @@ import winutils
 
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
-VER = '0.1.14'
+VER = '0.1.15'
 
 
 def convert_bytes(num):
@@ -114,6 +115,7 @@ class Mp4Info:
 class NasIndex:
 
     def __init__(self, index_path):
+        self.index_path = index_path
         self.paths = []
         self.file_names = []
         if os.path.isfile(index_path):
@@ -312,14 +314,14 @@ class MyFrame(wx.Frame):
 
         # ========== Основные элементы ==========
         self.panel = wx.Panel(self)
-        
+
         self.t_search = wx.TextCtrl(self.panel, size=self.FromDIP((850, 25)), style=wx.TE_PROCESS_ENTER)
-        
+
         self.Bind(wx.EVT_TEXT_ENTER, self.onEnter)
         self.t_search.Bind(wx.EVT_KEY_DOWN, self.onKeyboardHandle)
         self.b_search = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Поиск')
         self.b_search.Bind(wx.EVT_BUTTON, self.onEnter)
-                
+
         # Список
         self.mainlist = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
         self.mainlist.InsertColumn(0, 'Запрос', width=self.FromDIP(160))
@@ -352,19 +354,19 @@ class MyFrame(wx.Frame):
         self.b_save = wx.Button(self.panel, wx.ID_ANY, size=self.FromDIP((100, 25)), label='Скопировать')
         self.Bind(wx.EVT_BUTTON, self.onSave, id=self.b_save.GetId())
 
-        # настройка сайзеров 
+        # настройка сайзеров
         self.gr = wx.BoxSizer(orient=wx.VERTICAL)
-        
+
         self.gr1 = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.gr1.Add(self.t_search, proportion=1, flag=wx.EXPAND | wx.TOP | wx.LEFT, border=10)
         self.gr1.Add(self.b_search, flag=wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
 
         self.gr2 = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.gr2.Add(self.l_nasinfo, flag=wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
-        self.gr2.Add(self.l_counter, flag= wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr2.Add(self.l_counter, flag=wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
         self.gr2.AddStretchSpacer(prop=1)
         self.gr2.Add(self.save_option, flag=wx.EXPAND | wx.BOTTOM | wx.LEFT, border=10)
-        self.gr2.Add(self.b_save, flag= wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
+        self.gr2.Add(self.b_save, flag=wx.BOTTOM | wx.LEFT | wx.RIGHT, border=10)
 
         self.gr.Add(self.gr1, flag=wx.EXPAND)
         self.gr.Add(self.mainlist, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
@@ -373,20 +375,21 @@ class MyFrame(wx.Frame):
         self.panel.SetSizer(self.gr)
 
     def post_init(self, nas_location):
-        
+
         def check_nas_date(date_txt):
             '''Проверка, что nas.txt создан не более 1 дня назад'''
             date_obj = datetime.strptime(date_txt, '%d.%m.%Y')
             now = datetime.now()
             delta = now - date_obj
             if delta > timedelta(days=1):
-                return '(!)' 
+                return '(!)'
             else:
                 return ''
-        
+
         self.nas = NasIndex(nas_location)
         if self.nas.is_ready():
             self.l_nasinfo.Label = f"{os.path.basename(nas_location)}: (дата {self.nas.date}{check_nas_date(self.nas.date)}, файлов {len(self.nas.paths)})"
+            self.l_nasinfo.SetToolTip(self.nas.index_path)
         else:
             self.l_nasinfo.Label = "Индекс не загружен"
 
@@ -523,8 +526,8 @@ class MyFrame(wx.Frame):
         file_names = nas_obj.file_names
         for film in films:
             flag = False  # фильм найден
+            global stop_flag
             for j, file_name in enumerate(file_names):
-                global stop_flag
                 if stop_flag:
                     return
                 if find_whole_word(film)(file_name) != None:
@@ -671,6 +674,7 @@ class MyFrame(wx.Frame):
         self.file_loc = FileLocation(self, 'Создание индекса', self.src, "nas.txt")
         if self.file_loc.ShowModal() == wx.ID_OK:
             self.index = IndexingPanel(self, 'Создание индекса', self.file_loc.t_nas_location.Value, "nas.txt")
+            self.save_reg(os.path.abspath(os.path.join('.', 'nas.txt')))  # сохраняем путь в реестр
             self.post_init("nas.txt")
 
     def OnOpenIndex(self, event):
@@ -683,6 +687,7 @@ class MyFrame(wx.Frame):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
             path_name = fileDialog.GetPath()
+        self.save_reg(path_name)
         self.l_nasinfo.Disable()
         self.post_init(path_name)
         self.l_nasinfo.Enable()
@@ -694,6 +699,32 @@ class MyFrame(wx.Frame):
                 checked += 1
         self.l_counter.Label = 'Выбрано: ' + str(checked)
 
+    @staticmethod
+    def save_reg(path):
+        soft = winreg.OpenKeyEx(winreg.HKEY_CURRENT_USER, r"SOFTWARE\\")
+        key = winreg.CreateKey(soft, "Kinolist_Lib")
+        winreg.SetValueEx(key, "Path", 0, winreg.REG_SZ, path)
+        if key:
+            winreg.CloseKey(key)
+
+    @staticmethod
+    def get_path():
+
+        def get_reg(name, reg_path):
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_READ)
+                value, _regtype = winreg.QueryValueEx(key, name)
+                winreg.CloseKey(key)
+                return value
+            except WindowsError:
+                return None
+
+        path = get_reg('Path', R'SOFTWARE\Kinolist_Lib')
+        if path:
+            return path
+        else:
+            return "nas.txt"
+
 
 def run_gui():
     app = wx.App()
@@ -703,7 +734,8 @@ def run_gui():
     top.SetMinSize(top.FromDIP(wx.Size(1000, 560)))
     top.Centre()
     top.Show()
-    top.post_init('nas.txt')
+    nas_path = top.get_path()
+    top.post_init(nas_path)
     app.MainLoop()
 
 
