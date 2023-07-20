@@ -115,7 +115,7 @@ class Mp4Info:
 class NasIndex:
 
     def __init__(self, index_path):
-        self.index_path = index_path
+        self.index_path = os.path.abspath(index_path)
         self.paths = []
         self.file_names = []
         if os.path.isfile(index_path):
